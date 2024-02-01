@@ -47,7 +47,6 @@ struct AlloApp : App {
     gui.add(sphereRadius);
     gui.add(k);
     gui.add(q);
-    //
   }
 
   void onCreate() override {
@@ -89,40 +88,16 @@ struct AlloApp : App {
   void onAnimate(double dt) override {
     if (freeze) return;
 
-    // Calculate forces
-
-    // XXX you put code here that calculates gravitational forces and sets
-    // accelerations These are pair-wise. Each unique pairing of two particles
-    // These are equal but opposite: A exerts a force on B while B exerts that
-    // same amount of force on A (but in the opposite direction!) Use a nested
-    // for loop to visit each pair once The time complexity is O(n*n)
-    //
-    // Vec3f has lots of operations you might use...
-    // • +=
-    // • -=
-    // • +
-    // • -
-    // • .normalize() ~ Vec3f points in the direction as it did, but has length 1
-    // • .normalize(float scale) ~ same but length `scale`
-    // • .mag() ~ length of the Vec3f
-    // • .magSqr() ~ squared length of the Vec3f
-    // • .dot(Vec3f f) 
-    // • .cross(Vec3f f)
-
-    // float sphereRadius = 5.0; // example radius
-    // float k = 0.01; // spring constant, adjust as needed
-
     vector<Vec3f> &position(mesh.vertices());
 
     Octree tree(Vec3f(0, 0, 0), Vec3f(10, 10, 10), 1.0f);
     tree.build(position);
 
     for (int i = 0; i < position.size(); i++) {
-      HSV q1 = mesh.colors()[i];
       float currentDistance = position[i].mag();
       float displacement = currentDistance - sphereRadius;
       Vec3f springForce = Vec3f(-position[i]).normalize() * (k * displacement);
-      force[i] += springForce + q * displacement; // spring force
+      force[i] += springForce;// + q * displacement; // spring force
       
       force[i] += - velocity[i] * dragFactor;     // drag force
 
@@ -135,8 +110,7 @@ struct AlloApp : App {
 
       // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
       float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
-      // for (int i = 0; i < position.size(); i++) {
-      // for (int j = i + 1; j < position.size(); j++) {
+      HSV q1 = mesh.colors()[i];
       for (int j : nearbyParticles) {
         if ( i == j ) continue;
         HSV q2 = mesh.colors()[j];
@@ -149,22 +123,7 @@ struct AlloApp : App {
         force[i] -= F * 0.001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
         force[j] += F * 0.001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
       }
-      // }
     }
-
-
-    // drag
-    // for (int i = 0; i < velocity.size(); i++) {
-    //   force[i] += - velocity[i] * dragFactor;
-    // }
-
-    // Integration
-    // vector<Vec3f> &position(mesh.vertices());
-    // for (int i = 0; i < velocity.size(); i++) {
-    //   // "semi-implicit" Euler integration
-    //   velocity[i] += force[i] / mass[i] * timeStep;
-    //   position[i] += velocity[i] * timeStep;
-    // }
 
     // clear all accelerations (IMPORTANT!!)
     for (auto &a : force) a.set(0);
