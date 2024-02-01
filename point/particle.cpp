@@ -1,3 +1,7 @@
+// Ryan Millett
+// MAT201B - 2024
+
+// starter code by
 // Karl Yerkes
 // 2022-01-20
 

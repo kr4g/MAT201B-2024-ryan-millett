@@ -1,3 +1,6 @@
+// Ryan Millett
+// MAT201B - 2024
+
 #include "al/app/al_App.hpp"
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
