@@ -12,6 +12,7 @@ void main() {
   // don't round off the corners
   float r = dot(fragment.mapping, fragment.mapping);
   if (r > 1) discard;
+  
   fragmentColor = vec4(fragment.color.rgb, 1 - r * r);
   // fragmentColor = vec4(fragment.color.rgb, 1.0);
 }

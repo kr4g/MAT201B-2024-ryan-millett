@@ -5,13 +5,15 @@
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
 
+#include "/Users/ryanmillett/MAT276IA/allolib_playground/MAT201B-2024-ryan-millett/point/octtree.cpp"
+
 using namespace al;
 
 #include <fstream>
 #include <vector>
 using namespace std;
 
-float n_particles = 1500;
+float n_particles = 15000;//1670;
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
@@ -111,6 +113,10 @@ struct AlloApp : App {
     // float k = 0.01; // spring constant, adjust as needed
 
     vector<Vec3f> &position(mesh.vertices());
+
+    Octree tree(Vec3f(0, 0, 0), Vec3f(10, 10, 10), 1.0f);
+    tree.build(position);
+
     for (int i = 0; i < position.size(); i++) {
       HSV q1 = mesh.colors()[i];
       float currentDistance = position[i].mag();
@@ -118,10 +124,17 @@ struct AlloApp : App {
       Vec3f springForce = Vec3f(-position[i]).normalize() * (k * displacement);
       force[i] += springForce + q * displacement;
       
+
+      vector<int> nearbyParticles;
+      tree.queryRegion(position[i], Vec3f(10, 10, 10), nearbyParticles); 
+
+
       // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
       float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
       // for (int i = 0; i < position.size(); i++) {
-      for (int j = i + 1; j < position.size(); j++) {
+      // for (int j = i + 1; j < position.size(); j++) {
+      for (int j : nearbyParticles) {
+        if ( i == j ) continue;
         HSV q2 = mesh.colors()[j];
         float charge = q1.h * q2.h;
         float u = abs(q1.h - q2.h);
