@@ -126,7 +126,7 @@ struct AlloApp : App {
       
 
       vector<int> nearbyParticles;
-      tree.queryRegion(position[i], Vec3f(10, 10, 10), nearbyParticles); 
+      tree.queryRegion(position[i], Vec3f(1, 1, 1), nearbyParticles); 
 
 
       // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
