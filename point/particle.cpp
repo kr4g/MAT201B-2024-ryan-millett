@@ -13,7 +13,7 @@ using namespace al;
 #include <vector>
 using namespace std;
 
-float n_particles = 20000;//1670;
+float n_particles = 50000;//1670;
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
@@ -21,12 +21,12 @@ Vec3f randomVec3f(float scale) {
 string slurp(string fileName);  // forward declaration
 
 struct AlloApp : App {
-  Parameter pointSize{"/pointSize", "", 2.0, 0.0, 4.0};
-  Parameter timeStep{"/timeStep", "", 0.01, 0.0008, 0.6};
-  Parameter dragFactor{"/dragFactor", "", 0.33, 0.0, 2.0};
-  Parameter sphereRadius{"sphereRadius", "", 5.0, 0.0, 15.0};
+  Parameter pointSize{"/pointSize", "", 3.0, 0.1, 6.0};
+  Parameter timeStep{"/timeStep", "", 0.01, 0.0, 0.1};
+  Parameter dragFactor{"/dragFactor", "", 0.667, 0.0, 5.0};
+  Parameter sphereRadius{"sphereRadius", "", 15.0, 0.5, 30.0};
   Parameter k{"k", "", 0.0, 0.0, 5.0};
-  Parameter q{"q", "", 0.0, 0.0, 0.1};
+  Parameter q{"q", "", 0.0, 0.0, 1.0};
   //
 
   ShaderProgram pointShader;
@@ -66,7 +66,7 @@ struct AlloApp : App {
     // does 1000 work on your system? how many can you make before you get a low
     // frame rate? do you need to use <1000?
     for (int _ = 0; _ < n_particles; _++) {
-      mesh.vertex(randomVec3f(15));
+      mesh.vertex(randomVec3f(25));
       mesh.color(randomColor());
 
       // float m = rnd::uniform(3.0, 0.5);
@@ -78,11 +78,11 @@ struct AlloApp : App {
       mesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
 
       // separate state arrays
-      velocity.push_back(randomVec3f(0.1));
-      force.push_back(randomVec3f(1));
+      velocity.push_back(randomVec3f(2.5));
+      force.push_back(randomVec3f(20));
     }
 
-    nav().pos(0, 0, 10);
+    nav().pos(0, 0, 40);
   }
 
   bool freeze = false;
@@ -122,12 +122,16 @@ struct AlloApp : App {
       float currentDistance = position[i].mag();
       float displacement = currentDistance - sphereRadius;
       Vec3f springForce = Vec3f(-position[i]).normalize() * (k * displacement);
-      force[i] += springForce + q * displacement;
+      force[i] += springForce + q * displacement; // spring force
       
+      force[i] += - velocity[i] * dragFactor;     // drag force
+
+      // "semi-implicit" Euler integration
+      velocity[i] += force[i] / mass[i] * timeStep;
+      position[i] += velocity[i] * timeStep;
 
       vector<int> nearbyParticles;
       tree.queryRegion(position[i], Vec3f(1, 1, 1), nearbyParticles); 
-
 
       // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
       float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
@@ -137,33 +141,36 @@ struct AlloApp : App {
         if ( i == j ) continue;
         HSV q2 = mesh.colors()[j];
         float charge = q1.h * q2.h;
-        float u = abs(q1.h - q2.h);
+        float u = 1.0;//abs(q1.h - q2.h);
         Vec3f r = position[j] - position[i];
         if (r < 0.333) { charge *= 1.667; }
-        Vec3f F = (Vec3f(r).normalize() * charge * u * q * 0.001) / (r.magSqr() + 0.001);
-        F = F * ke * 0.0001;
-        force[i] -= F * 0.001 + rnd::uniformS() * (1.0 - u) * q * 0.001;
-        force[j] += F * 0.001 + rnd::uniformS() * (1.0 - u) * q * 0.001;
+        Vec3f F = (Vec3f(r).normalize() * charge * u * q * 0.01) / (r.magSqr() + 0.001);
+        F = F * ke * 0.1;
+        force[i] -= F * 0.001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+        force[j] += F * 0.001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
       }
       // }
     }
 
 
     // drag
-    for (int i = 0; i < velocity.size(); i++) {
-      force[i] += - velocity[i] * dragFactor;
-    }
+    // for (int i = 0; i < velocity.size(); i++) {
+    //   force[i] += - velocity[i] * dragFactor;
+    // }
 
     // Integration
     // vector<Vec3f> &position(mesh.vertices());
-    for (int i = 0; i < velocity.size(); i++) {
-      // "semi-implicit" Euler integration
-      velocity[i] += force[i] / mass[i] * timeStep;
-      position[i] += velocity[i] * timeStep;
-    }
+    // for (int i = 0; i < velocity.size(); i++) {
+    //   // "semi-implicit" Euler integration
+    //   velocity[i] += force[i] / mass[i] * timeStep;
+    //   position[i] += velocity[i] * timeStep;
+    // }
 
     // clear all accelerations (IMPORTANT!!)
     for (auto &a : force) a.set(0);
+    
+    nav().smooth(0.9);
+    nav().faceToward(Vec3d(0, 0, 0));
   }
 
   bool onKeyDown(const Keyboard &k) override {
@@ -175,7 +182,7 @@ struct AlloApp : App {
       // introduce some "random" forces
       for (int i = 0; i < velocity.size(); i++) {
         // F = ma
-        force[i] += randomVec3f(5);
+        force[i] += randomVec3f(60);
       }
     }
 
