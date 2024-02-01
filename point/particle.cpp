@@ -115,13 +115,13 @@ struct AlloApp : App {
         if ( i == j ) continue;
         HSV q2 = mesh.colors()[j];
         float charge = q1.h * q2.h;
-        float u = 1.0;//abs(q1.h - q2.h);
+        float u = 100.0 * abs(q1.h - q2.h);
         Vec3f r = position[j] - position[i];
-        if (r < 0.333) { charge *= 1.667; }
-        Vec3f F = (Vec3f(r).normalize() * charge * u * q * 0.01) / (r.magSqr() + 0.001);
-        F = F * ke * 0.1;
-        force[i] -= F * 0.001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
-        force[j] += F * 0.001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+        // if (r < 0.333) { charge *= 1.667; }
+        Vec3f F = (Vec3f(r).normalize() * charge * q) / (r.magSqr() + 0.001);
+        F = F * ke * u;
+        force[i] -= F;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+        force[j] += F;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
       }
     }
 
