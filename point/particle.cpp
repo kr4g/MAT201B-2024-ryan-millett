@@ -9,7 +9,7 @@
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
 
-#include "/Users/ryanmillett/MAT276IA/allolib_playground/MAT201B-2024-ryan-millett/point/octtree.cpp"
+#include "octtree.cpp"
 
 using namespace al;
 
@@ -17,7 +17,7 @@ using namespace al;
 #include <vector>
 using namespace std;
 
-float n_particles = 50000;//1670;
+float n_particles = 100000;//1670;
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
