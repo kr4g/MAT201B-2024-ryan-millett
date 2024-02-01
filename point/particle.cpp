@@ -13,7 +13,7 @@ using namespace al;
 #include <vector>
 using namespace std;
 
-float n_particles = 15000;//1670;
+float n_particles = 20000;//1670;
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
@@ -21,10 +21,10 @@ Vec3f randomVec3f(float scale) {
 string slurp(string fileName);  // forward declaration
 
 struct AlloApp : App {
-  Parameter pointSize{"/pointSize", "", 1.0, 0.0, 4.0};
-  Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
-  Parameter dragFactor{"/dragFactor", "", 0.1, 0.0, 0.9};
-  Parameter sphereRadius{"sphereRadius", "", 5.0, 0.0, 10.0};
+  Parameter pointSize{"/pointSize", "", 2.0, 0.0, 4.0};
+  Parameter timeStep{"/timeStep", "", 0.01, 0.0008, 0.6};
+  Parameter dragFactor{"/dragFactor", "", 0.33, 0.0, 2.0};
+  Parameter sphereRadius{"sphereRadius", "", 5.0, 0.0, 15.0};
   Parameter k{"k", "", 0.0, 0.0, 5.0};
   Parameter q{"q", "", 0.0, 0.0, 0.1};
   //
@@ -66,7 +66,7 @@ struct AlloApp : App {
     // does 1000 work on your system? how many can you make before you get a low
     // frame rate? do you need to use <1000?
     for (int _ = 0; _ < n_particles; _++) {
-      mesh.vertex(randomVec3f(5));
+      mesh.vertex(randomVec3f(15));
       mesh.color(randomColor());
 
       // float m = rnd::uniform(3.0, 0.5);
@@ -175,7 +175,7 @@ struct AlloApp : App {
       // introduce some "random" forces
       for (int i = 0; i < velocity.size(); i++) {
         // F = ma
-        force[i] += randomVec3f(1);
+        force[i] += randomVec3f(5);
       }
     }
 
