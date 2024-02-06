@@ -28,12 +28,10 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{0.6f};     // Minimum distance from edge to start turning
-    float turnRateFactor;       // Factor to adjust turning rate
+    float minEdgeProximity{1.5f};     // Minimum distance from edge to start turning
+    float turnRateFactor{0.03f};       // Factor to adjust turning rate
 
-    Boid() : lifespan(100.0f),
-                // minEdgeProximity(0.01f),
-                turnRateFactor(0.3f) {}
+    // Boid() : {}
     
     ~Boid() {}
 
@@ -43,7 +41,7 @@ public:
         float zDist = std::min(std::abs(bNav.pos().z - size), std::abs(bNav.pos().z + size));
 
         float closestDist = std::min({xDist, yDist, zDist});
-        float turnRate = 0.01 / closestDist; // Adjust turn rate based on distance
+        float turnRate = turnRateFactor / closestDist; // Adjust turn rate based on distance
 
         if (xDist < minEdgeProximity) {
             bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), Vec3d(0, 1, 0), turnRate);

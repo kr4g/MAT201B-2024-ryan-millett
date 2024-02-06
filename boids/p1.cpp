@@ -11,7 +11,7 @@
 // #include "../utils/octtree.cpp"
 #include "classes/boid.cpp"
 
-const int CUBE_SIZE = 13;
+const int CUBE_SIZE = 20;
 
 const int MAX_BOIDS = 6000;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
@@ -138,7 +138,7 @@ struct MyApp : App {
     // }
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
     foodMesh.primitive(Mesh::POINTS);
-    for (int _ = 0; _ < food.size(); _++) {
+    for (int _ = 0; _ < N_PARTICLES; _++) {
       foodMesh.vertex(randomVec3f(CUBE_SIZE));
       foodMesh.color(randomColor());
 
@@ -254,7 +254,7 @@ struct MyApp : App {
         g.scale(
           // predators can be up to 1.5x larger than prey
           // (b.type == 0) ? 0.03 * rnd::uniform(0.83, 1.0) : 0.09 * rnd::uniform(0.5, 1.0)
-          0.09
+          0.167
         );
         g.draw(
           // prey are blue/green, predators are red/orange
