@@ -57,10 +57,11 @@ string slurp(string fileName);  // forward declaration
 struct MyApp : App {
   
   Parameter timeStep{"Time Step", "", 3.0, "", 0.008333, 5.0};
+  Parameter pointSize{"/pointSize", "", 3.0, 0.1, 6.0};
   std::vector<Boid> boids{MAX_BOIDS};
   std::vector<Nav*> navPtrs;
   
-  std::vector<Vec3f> food{MAX_BOIDS * 0.67};
+  std::vector<Vec3f> food{N_PARTICLES};
   vector<Vec3f> velocity;
   vector<Vec3f> force;
   vector<float> mass;
@@ -77,7 +78,7 @@ struct MyApp : App {
   Mesh predMesh;
   Mesh preyMesh;
   // Mesh boidMesh;
-  Mesh foodMesh{Mesh::POINTS};
+  Mesh foodMesh;
 
 
   // Nav point;
@@ -129,26 +130,44 @@ struct MyApp : App {
     preyMesh.vertex(0, 1, 0);
     preyMesh.color(0, 0, rnd::uniform(0.5, 1.0));
 
+    // foodMesh.primitive(Mesh::POINTS);
+    // for (int i = 0; i < food.size(); i++) {
+    //   food[i] = Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * CUBE_SIZE;
+    //   foodMesh.vertex(food[i]);
+    //   foodMesh.color(0.5, 0.25, 0);
+    // }
+    auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
     foodMesh.primitive(Mesh::POINTS);
-    for (int i = 0; i < food.size(); i++) {
-      food[i] = Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * CUBE_SIZE;
-      foodMesh.vertex(food[i]);
-      foodMesh.color(0.5, 0.25, 0);
+    for (int _ = 0; _ < food.size(); _++) {
+      foodMesh.vertex(randomVec3f(CUBE_SIZE));
+      foodMesh.color(randomColor());
+
+      // float m = rnd::uniform(3.0, 0.5);
+      float m = 3 + rnd::normal() / 2;
+      if (m < 0.5) m = 0.5;
+      mass.push_back(m);
+
+      // using a simplified volume/size relationship
+      foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
+
+      // separate state arrays
+      velocity.push_back(randomVec3f(2.5));
+      force.push_back(randomVec3f(2.0));
     }
   }
   
-  void randomizeFoodList() {
-    // randomize food positions
-    // and update mesh vertices
-    for (int i = 0; i < food.size(); i++) {
-      randomizeFoodParticle(food[i]);
-      foodMesh.vertices()[i] = food[i];
-    }
-  }
+  // void randomizeFoodList() {
+  //   // randomize food positions
+  //   // and update mesh vertices
+  //   for (int i = 0; i < food.size(); i++) {
+  //     randomizeFoodParticle(food[i]);
+  //     foodMesh.vertices()[i] = food[i];
+  //   }
+  // }
 
-  void randomizeFoodParticle(Vec3f& f) {
-    f.set(r(), r(), r());
-  }
+  // void randomizeFoodParticle(Vec3f& f) {
+  //   f.set(r(), r(), r());
+  // }
 
   void setUp() {
       navPtrs.clear();
@@ -207,8 +226,7 @@ struct MyApp : App {
     // graphics / drawing settings
     g.clear(0);
     g.meshColor();
-    g.pointSize(10);
-
+    g.pointSize(10);    
     // g.rotate(angle, Vec3d(0, 1, 0));
 
     {
@@ -247,12 +265,14 @@ struct MyApp : App {
       }
     }
 
-    // draw food
-    // g.scale(0.01);
-    // g.pointSize(20);
-    // g.meshColor();
     axes.draw(g);
-    // g.draw(foodMesh);
+    
+    g.shader(pointShader);
+    g.shader().uniform("pointSize", pointSize / 100);
+    g.blending(true);
+    g.blendTrans();
+    g.depthTesting(true);
+    g.draw(foodMesh);
   }
 
   void onInit() override {
@@ -263,6 +283,7 @@ struct MyApp : App {
     // gui.add(foodResetRate);
     // gui.add(boidRespawnRate);
     gui.add(timeStep);
+    gui.add(pointSize);
   }
 };
 
