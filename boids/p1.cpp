@@ -56,7 +56,7 @@ string slurp(string fileName);  // forward declaration
 
 struct MyApp : App {
   
-  Parameter timeStep{"Time Step", "", 3.0, "", 0.008333, 3.0};
+  Parameter timeStep{"Time Step", "", 3.0, "", 0.008333, 5.0};
   std::vector<Boid> boids{MAX_BOIDS};
   std::vector<Nav*> navPtrs;
   
@@ -92,7 +92,7 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(0.5, 0.7, CUBE_SIZE * 5.0);
+    nav().pos(0.7, 0.7, CUBE_SIZE * 4.0);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(0, 0, CUBE_SIZE * 2.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));

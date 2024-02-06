@@ -62,7 +62,7 @@ public:
         int alignCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 2.0) { 
+            if (dist < 5.0) { 
                 averageHeading += navs[i]->uf();
                 alignCount++;
             }
@@ -70,7 +70,7 @@ public:
         if (alignCount > 0) {
             averageHeading /= alignCount;
             // Normalize to get direction and apply alignment
-            bNav.faceToward(bNav.pos() + averageHeading.normalized(), Vec3f(0, 1, 0), 0.1);
+            bNav.faceToward(bNav.pos() + averageHeading.normalized(), Vec3f(0, 1, 0), 0.2);
         }
     }
 
@@ -97,7 +97,7 @@ public:
         int cohesionCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist > 1.5) {
+            if (dist > 3.5) {
                 centerOfMass += navs[i]->pos();
                 cohesionCount++;
             }
@@ -105,13 +105,13 @@ public:
         if (cohesionCount > 0) {
             centerOfMass /= cohesionCount;
             // Move towards the center of mass of nearby boids
-            bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), 0.05);
+            bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), 0.075);
         }
     }
 
     void detectSurroundings(const Octree& tree, float size, const std::vector<Nav*>& navs) {
         vector<int> i_navs;
-        tree.queryRegion(bNav.pos(), Vec3f(3, 3, 3), i_navs);
+        tree.queryRegion(bNav.pos(), Vec3f(5, 5, 5), i_navs);
 
         alignment(navs, i_navs);
         cohesion(navs, i_navs);
