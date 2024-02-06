@@ -21,6 +21,9 @@ const int N_PARTICLES = 500;
 using namespace al;
 
 double r() { return rnd::uniformS() * CUBE_SIZE * rnd::uniform(0.72, 0.833); }
+Vec3f randomVec3f(float scale) {
+  return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
+}
 struct Axes {
   void draw(Graphics &g) {
     Mesh mesh(Mesh::LINES);
@@ -49,11 +52,19 @@ struct Axes {
   }
 };
 
+string slurp(string fileName);  // forward declaration
+
 struct MyApp : App {
   
-  Parameter timeStep{"Time Step", "", 1.333, "", 0.008333, 3.0};
+  Parameter timeStep{"Time Step", "", 3.0, "", 0.008333, 3.0};
   std::vector<Boid> boids{MAX_BOIDS};
   std::vector<Nav*> navPtrs;
+  
+  std::vector<Vec3f> food{MAX_BOIDS * 0.67};
+  vector<Vec3f> velocity;
+  vector<Vec3f> force;
+  vector<float> mass;
+
   double time{0};
   double foodRefresh{0};
   double boidRespawn{0};
@@ -62,15 +73,22 @@ struct MyApp : App {
 
   double initDist;
 
+  Axes axes;
   Mesh predMesh;
   Mesh preyMesh;
   // Mesh boidMesh;
   Mesh foodMesh{Mesh::POINTS};
-  Axes axes;
-  std::vector<Vec3f> food{MAX_BOIDS * 0.67};
+
+
   // Nav point;
 
+  ShaderProgram pointShader;
+
   void onCreate() override {
+    pointShader.compile(slurp("../point-vertex.glsl"),
+                        slurp("../point-fragment.glsl"),
+                        slurp("../point-geometry.glsl"));
+
     setUp();
 
     // place the camera so that we can see the axes
@@ -252,4 +270,15 @@ int main() {
   MyApp app;
   app.configureAudio(48000, 512, 2, 0);
   app.start();
+}
+
+string slurp(string fileName) {
+  fstream file(fileName);
+  string returnValue = "";
+  while (file.good()) {
+    string line;
+    getline(file, line);
+    returnValue += line + "\n";
+  }
+  return returnValue;
 }
