@@ -56,7 +56,7 @@ string slurp(string fileName);  // forward declaration
 
 struct MyApp : App {
   
-  Parameter timeStep{"Time Step", "", 3.0, "", 0.008333, 5.0};
+  Parameter timeStep{"Time Step", "", 5.0, "", 0.08333, 5.0};
   Parameter pointSize{"/pointSize", "", 3.0, 0.1, 6.0};
   std::vector<Boid> boids{MAX_BOIDS};
   std::vector<Nav*> navPtrs;
@@ -151,8 +151,8 @@ struct MyApp : App {
       foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
 
       // separate state arrays
-      velocity.push_back(randomVec3f(2.5));
-      force.push_back(randomVec3f(2.0));
+      velocity.push_back(randomVec3f(0.005));
+      force.push_back(randomVec3f(0.0001));
     }
   }
   
@@ -184,6 +184,7 @@ struct MyApp : App {
   
   bool freeze = false;
   double phase = 0;
+  double foodPhase = 0;
   Vec3d target = Vec3d(r(), r(), r());
   void onAnimate(double dt) override {
     if (freeze) return;
@@ -191,22 +192,71 @@ struct MyApp : App {
     time += dt;
 
 
-    vector<Nav*> &position(navPtrs);
+    vector<Nav*> &bPosition(navPtrs);
 
-    Octree tree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.15f);
-    tree.build(position);
+    Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.15f);
+    boidTree.build(bPosition);
 
+    foodPhase += dt;
     phase += dt;
-    if (phase >= 30) {
-        phase -= 30;
-        target = Vec3d(r(), r(), r());
+    if (phase >= 30) {      
+      phase -= 30;
+      target = Vec3d(r(), r(), r());
     }
+    
+
     for (auto& b : boids) {
       // boid self-orientation algorithm
       b.seek(target, rnd::uniform(0.001, 0.008), rnd::uniform(0.05, 0.5));
-      b.detectSurroundings(tree, CUBE_SIZE, position);
+      b.detectSurroundings(boidTree, CUBE_SIZE, bPosition);
       b.updatePosition(rnd::uniform(0.667, 0.833), dt);
     }
+
+    bool foodReset = false;
+    if (foodPhase > 50) {
+      foodPhase -= 50;       
+      foodReset = true;
+    }
+
+    vector<Vec3f> &foodPosition(foodMesh.vertices());
+
+    Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 1.0f);
+    foodTree.build(foodPosition);
+    for (int i = 0; i < foodPosition.size(); i++) {
+      float currentDistance = foodPosition[i].mag();
+      float displacement = currentDistance - CUBE_SIZE * 0.667;
+      Vec3f springForce = (displacement < CUBE_SIZE) ? 0.0 : Vec3f(-foodPosition[i]).normalize() * (0.001 * displacement);
+      force[i] += springForce * 0.5 + springForce * randomVec3f(0.001) * 0.01; // spring force
+      if (displacement > CUBE_SIZE) {
+        force[i] += -velocity[i] * 0.05;     // drag force
+      }
+
+      // "semi-implicit" Euler integration
+      velocity[i] += force[i] / mass[i] * timeStep;
+      foodPosition[i] += velocity[i] * timeStep;
+
+      // vector<int> nearbyParticles;
+      // foodTree.queryRegion(foodPosition[i], Vec3f(10, 10, 10), nearbyParticles); 
+
+      // // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
+      // float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
+      // HSV q1 = foodMesh.colors()[i];
+      // for (int j : nearbyParticles) {
+      //   if ( i == j ) continue;
+      //   HSV q2 = foodMesh.colors()[j];
+      //   float charge = q1.h * q2.h;
+      //   float u = 0.0001 * abs(q1.h - q2.h);
+      //   Vec3f r = foodPosition[j] - foodPosition[i];
+      //   // if (r < 0.333) { charge *= 1.667; }
+      //   Vec3f F = (Vec3f(r).normalize() * charge) / (r.magSqr() + 0.0000001);
+      //   F = F * ke * u * 0.0001;
+      //   force[i] -= F * 0.0001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+      //   force[j] += F * 0.0001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+      // }
+    }
+
+    // clear all accelerations (IMPORTANT!!)
+    for (auto &a : force) a.set(0);
 
     nav().smooth(0.9);
     nav().faceToward(Vec3d(0, 0, 0));
