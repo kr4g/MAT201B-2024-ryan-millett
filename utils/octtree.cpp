@@ -64,12 +64,11 @@ public:
     }
     
     void build(const vector<Nav*>& navs) {
-    clear(root);
-    for (int i = 0; i < navs.size(); ++i) {
-        insertPosition(i, navs[i]->pos());
+        clear(root);
+        for (int i = 0; i < navs.size(); ++i) {
+            insertPosition(i, navs[i]->pos());
+        }
     }
-}
-
 
     void queryRegion(const Vec3f& center, const Vec3f& halfSize, vector<int>& found) const {
         queryRegion(root, center, halfSize, found);

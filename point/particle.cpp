@@ -9,7 +9,8 @@
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
 
-#include "octtree.cpp"
+// #include "octtree.cpp"
+#include "../utils/octtree.cpp"
 
 using namespace al;
 
