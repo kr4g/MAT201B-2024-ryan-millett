@@ -28,7 +28,7 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{9.5f};     // Minimum distance from edge to start turning
+    float minEdgeProximity{5.5f};     // Minimum distance from edge to start turning
     float turnRateFactor{0.13f};       // Factor to adjust turning rate
 
     // Boid() : {}
@@ -141,7 +141,7 @@ public:
         int cohesionCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist > 4.5) {
+            if (dist > 5.0) {
                 centerOfMass += navs[i]->pos();
                 cohesionCount++;
             }
@@ -163,7 +163,7 @@ public:
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
-        handleBoundary(size*1.167);
+        handleBoundary(size*1.0833);
         // originAvoidance(5.0);
     }
 
