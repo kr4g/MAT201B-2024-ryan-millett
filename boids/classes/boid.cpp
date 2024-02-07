@@ -45,15 +45,15 @@ public:
 
         float proximity = (size - xDist) / size;
         if (xDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
-            if (xDist < 0.75) { 
+            bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
+            if (xDist < 1.75) { 
                 bNav.quat().set(rnd::uniformS(), bNav.quat().y, bNav.quat().z, rnd::uniformS()).normalize();
             }
         } 
 
         proximity = (size - yDist) / size;
         if (yDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
+            bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
             if (yDist < 0.75) { 
                 bNav.quat().set(bNav.quat().x, rnd::uniform(), bNav.quat().z, rnd::uniformS()).normalize();
             }
@@ -61,18 +61,26 @@ public:
         
         proximity = (size - zDist) / size;
         if (zDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*proximity);
+            bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
             if (zDist < 0.75) { 
                 bNav.quat().set(bNav.quat().x, bNav.quat().y, rnd::uniformS(), rnd::uniformS()).normalize();
             }
         }
     }
 
-    void originAvoidance(float size) {
-        float dist = bNav.pos().mag();
-        float turnRate = turnRateFactor * (1.0 - dist / size);
-        if (dist < 0.95) {
-            Vec3d away = bNav.pos().normalize() / dist;
+    // void originAvoidance(float size) {
+    //     float dist = bNav.pos().mag();
+    //     float turnRate = turnRateFactor * (1.0 - dist / size);
+    //     if (dist < 1.75) {
+    //         Vec3d away = bNav.pos().normalize() / dist;
+    //         bNav.faceToward(away, bNav.uu(), turnRate);
+    //     }
+    // }
+    void originAvoidance(float avoidanceRadius) {
+        float dist = bNav.pos().mag(); // Distance from the origin
+        if (dist < avoidanceRadius) {     
+            Vec3d away = bNav.pos().normalize();
+            float turnRate = sqrt(turnRateFactor) * (1.0 - dist / avoidanceRadius);
             bNav.faceToward(away, bNav.uu(), turnRate);
         }
     }
@@ -89,8 +97,6 @@ public:
             if (oncoming < 0.0) {
                 bNav.faceToward(bNav.pos() + otherHeading, bNav.uu(), turnRate);
             }
-            
-            
         }    
     }
 
@@ -108,7 +114,8 @@ public:
         if (alignCount > 0) {
             averageHeading /= alignCount;
             // Normalize to get direction and apply alignment
-            bNav.faceToward(bNav.pos() + averageHeading.normalized(), bNav.uu(), 0.2);
+            float turnRate = turnRateFactor * (bNav.pos() - bNav.pos() + averageHeading).mag() / 20.0;
+            bNav.faceToward(bNav.pos() + averageHeading.normalized(), bNav.uu(), turnRate);
         }
     }
 
@@ -157,8 +164,8 @@ public:
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
-        handleBoundary(size*1.1667);
-        originAvoidance(size*0.333);
+        handleBoundary(size*1.0833);
+        // originAvoidance(5.0);
     }
 
     void findFood(const Octree& tree, float size, const std::vector<Vec3f>& food, const std::vector<float>& mass) {
@@ -179,7 +186,7 @@ public:
                 }
                 hunger += i / si; // make proportional to mass of food
             }
-            seek(food[biggestFood], 0.1);
+            seek(food[biggestFood], 0.31);
         }        
     }
 

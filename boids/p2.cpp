@@ -11,12 +11,12 @@
 // #include "../utils/octtree.cpp"
 #include "classes/boid.cpp"
 
-const int CUBE_SIZE = 20;
+const int CUBE_SIZE = 25;
 
-const int MAX_BOIDS = 5000;
+const int MAX_BOIDS = 6000;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
-const int N_PARTICLES = 1100;
+const int N_PARTICLES = 1600;
 
 using namespace al;
 
@@ -28,24 +28,24 @@ struct Axes {
   void draw(Graphics &g) {
     Mesh mesh(Mesh::LINES);
     // x axis
-    mesh.vertex(0, 0, 0);
+    mesh.vertex(-CUBE_SIZE, 0, 0);
     // mesh.color(1, 1, 1);  // white
     mesh.color(1, 0, 0);
-    mesh.vertex(1, 0, 0);
+    mesh.vertex(CUBE_SIZE, 0, 0);
     mesh.color(1, 0, 0);
 
     // y axis
-    mesh.vertex(0, 0, 0);
+    mesh.vertex(0, -CUBE_SIZE, 0);
     // mesh.color(1, 1, 1);  // white
     mesh.color(0, 1, 0);
-    mesh.vertex(0, 1, 0);
+    mesh.vertex(0, CUBE_SIZE, 0);
     mesh.color(0, 1, 0);
 
     // z axis
-    mesh.vertex(0, 0, 0);
+    mesh.vertex(0, 0, -CUBE_SIZE);
     // mesh.color(1, 1, 1);  // white
     mesh.color(0, 0, 1);
-    mesh.vertex(0, 0, 1);
+    mesh.vertex(0, 0, CUBE_SIZE);
     mesh.color(0, 0, 1);
 
     g.draw(mesh);
@@ -83,7 +83,7 @@ string slurp(string fileName);  // forward declaration
 struct MyApp : App {
   
   Parameter timeStep{"Time Step", "", 5.0, "", 0.08333, 5.0};
-  Parameter pointSize{"/pointSize", "", 0.667, 0.1, 6.0};
+  Parameter pointSize{"/pointSize", "", 1.667, 0.1, 6.0};
   std::vector<Boid> boids;
   std::vector<Nav*> navPtrs;
   
@@ -120,7 +120,7 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(0.0, 10.0, CUBE_SIZE * 1.667);
+    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.833, CUBE_SIZE * 1.0833);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(0, 0, CUBE_SIZE * 2.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
@@ -192,8 +192,8 @@ struct MyApp : App {
       foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
 
       // separate state arrays
-      velocity.push_back(randomVec3f(0.005));
-      force.push_back(randomVec3f(0.0001));
+      velocity.push_back(randomVec3f(0.025));
+      force.push_back(randomVec3f(0.000001));
     }
   }
   
@@ -217,7 +217,7 @@ struct MyApp : App {
       for (int i = 0; i < MAX_BOIDS; i++) {        
         Boid b;
         randomize(b.bNav);
-        b.seek(target, rnd::uniform(0.01, 0.1), rnd::uniform(0.25, 0.95));
+        b.seek(target, rnd::uniform(0.0001, 0.01), rnd::uniform(0.05, 0.75));
         navPtrs.push_back(&b.bNav); // address of the nav
         boids.push_back(b);
       }
@@ -246,61 +246,63 @@ struct MyApp : App {
 
     // bool findFood = false;
     phase += dt;
-    float phaseReset = 30 * timeStep.get();
+    float phaseReset = 5 * timeStep.get();
     if (phase > phaseReset) {
       phase -= phaseReset;
       // findFood = true;
-      target = randomVec3f(CUBE_SIZE);
+      target = randomVec3f(CUBE_SIZE*0.667);
     } else {
       std::vector<int> i_boids;
-      boidTree.queryRegion(target, Vec3f(10, 10, 10), i_boids);
-      if (i_boids.size() > MAX_BOIDS * 0.35) {
-        target = randomVec3f(CUBE_SIZE);
+      boidTree.queryRegion(target, Vec3f(15, 15, 15), i_boids);
+      if (i_boids.size() > 100) {
+        target = randomVec3f(CUBE_SIZE*0.833);
       }
     }
 
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
       boidCenterOfMass += b.bNav.pos();
-      float dist = (b.bNav.pos() - target).mag();
-      if (dist < 0.33) {
-        if (b.hunger < 0.7) {          
-          b.findFood(foodTree, 15, foodPosition, mass);
-          // target = Vec3d(r(), r(), r());
-        }
-      } else if (dist < 2.5) {
+      float dist = (b.bNav.pos() - b.target).mag();
+      if (dist < 3.5) {
+        b.findFood(foodTree, 15, foodPosition, mass);
+        // target = Vec3d(r(), r(), r());
+      } else if (dist < 5.5) {
+        // b.seek(b.target, rnd::uniform(0.01, 0.05), rnd::uniform(0.05, 0.45));
+        b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
+      } else if (dist < 10.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
         std::vector<int> i_boids;
-        boidTree.queryRegion(b.target, Vec3f(3, 3, 3), i_boids);
-        if (i_boids.size() > 100) {          
-          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.01), rnd::uniform(0.35, 0.95));
+        boidTree.queryRegion(b.target, Vec3f(9, 9, 9), i_boids);
+        if (i_boids.size() > 50) {
+          // b.findFood(foodTree, 10, foodPosition, mass);          
+          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.05), rnd::uniform(0.15, 0.95));
         } 
       } else {        
-        b.seek(target, rnd::uniform(0.001, 0.0081), rnd::uniform(0.05, 0.95));
+        b.seek(target, rnd::uniform(0.0008333, 0.008333), rnd::uniform(0.15, 0.95));
       }
       b.detectSurroundings(boidTree, CUBE_SIZE, boidPosition);
-      b.updatePosition(rnd::uniform(0.667, 0.833), dt);
+      b.updatePosition(rnd::uniform(0.667, 1.0), dt);
       b.updateParams(timeStep.get());
     }
     boidCenterOfMass /= boids.size();    
 
     for (int i = 0; i < foodPosition.size(); i++) {
       float currentDistance = foodPosition[i].mag();
-      float displacement = currentDistance - CUBE_SIZE * 0.55;
+      float displacement = currentDistance - CUBE_SIZE;
       Vec3f springForce = (displacement < CUBE_SIZE) ? 0.0 : Vec3f(-foodPosition[i]).normalize() * (0.001 * displacement);
       force[i] += springForce * 0.25 + springForce * randomVec3f(0.05) * 0.1; // spring force
-      if (displacement > CUBE_SIZE) {
-        force[i] += -velocity[i] * 5.97;     // drag force
+      if (displacement > CUBE_SIZE*0.43) {
+        force[i] += -velocity[i] * 4.97;     // drag force
       }
-      force[i] += -velocity[i] * 1.97;     // drag force
+      force[i] += -velocity[i] * 0.7;     // drag force
 
-      if (currentDistance < CUBE_SIZE * 0.1) {
-        force[i] += Vec3f(-foodPosition[i]).normalize() * 0.000001;
-        force[i] += -velocity[i] * 0.01;     // drag force
-      }
+      // if (currentDistance < CUBE_SIZE * 0.1) {
+      //   force[i] += Vec3f(-foodPosition[i]).normalize() * 0.000001;
+      //   force[i] += -velocity[i] * 0.1;     // drag force
+      // }
 
       // force toward the target
-      force[i] += Vec3f(target - foodPosition[i]).normalize() * 0.000001;
+      force[i] += Vec3f(target - foodPosition[i]).normalize() * 0.00012;
 
 
       // "semi-implicit" Euler integration
@@ -330,7 +332,7 @@ struct MyApp : App {
     // clear all accelerations (IMPORTANT!!)
     for (auto &a : force) a.set(0);
 
-    nav().smooth(0.36);
+    nav().smooth(0.16);
     nav().faceToward(boidCenterOfMass);
   }
 
@@ -350,7 +352,7 @@ struct MyApp : App {
     g.meshColor();
     g.pointSize(10);    
     // g.rotate(angle, Vec3d(0, 1, 0));
-    axes.draw(g);
+    // axes.draw(g);
 
     // {
     //   Mesh mesh(Mesh::LINES);
