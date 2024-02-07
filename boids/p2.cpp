@@ -16,7 +16,7 @@ const int CUBE_SIZE = 25;
 const int MAX_BOIDS = 7000;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
-const int N_PARTICLES = 9500;
+const int N_PARTICLES = 20500;
 
 using namespace al;
 
@@ -269,8 +269,7 @@ struct MyApp : App {
       } else if (dist < 6.5) {
         // b.seek(b.target, rnd::uniform(0.01, 0.05), rnd::uniform(0.05, 0.35));
         b.seek(randomVec3f(CUBE_SIZE*0.5), rnd::uniform(0.005, 0.21), rnd::uniform(0.15, 0.95));
-      } 
-      if (dist < 15.5) {
+      } else if (dist < 15.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
         std::vector<int> i_boids;
         boidTree.queryRegion(b.target, Vec3f(9, 9, 9), i_boids);

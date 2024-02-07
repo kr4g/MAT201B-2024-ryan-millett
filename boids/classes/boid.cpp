@@ -123,7 +123,7 @@ public:
         int closeBoids = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 3.0) {
+            if (dist < 2.0) {
                 Vec3f away = (bNav.pos() - navs[i]->pos()).normalize() / dist;
                 separationForce += away;
                 closeBoids++;
@@ -141,7 +141,7 @@ public:
         int cohesionCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist > 7.0) {
+            if (dist > 5.0) {
                 centerOfMass += navs[i]->pos();
                 cohesionCount++;
             }
@@ -163,13 +163,13 @@ public:
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
-        handleBoundary(size*1.1667);
+        handleBoundary(size*1.0);
         // originAvoidance(5.0);
     }
 
     void findFood(const Octree& tree, float size, const std::vector<Vec3f>& food, const std::vector<float>& mass) {
         hunger = (hunger > 1.0) ? hunger = 1.0 : hunger; 
-        if ((target - bNav.pos()).magSqr() < 0.1) {
+        if ((target - bNav.pos()).magSqr() < 0.5) {
             hunger -= 0.0001; // make proportional to mass of food
             target = Vec3d(rnd::uniformS(), rnd::uniformS(), rnd::uniformS());
         }
