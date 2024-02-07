@@ -241,7 +241,7 @@ struct MyApp : App {
     Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
     foodTree.build(foodPosition);
 
-    Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.15f);
+    Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.1f);
     boidTree.build(boidPosition);  
 
     // bool findFood = false;
