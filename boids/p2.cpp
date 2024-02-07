@@ -120,7 +120,7 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 2.667);
+    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 2.0);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(0, 0, CUBE_SIZE * 2.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
@@ -381,7 +381,7 @@ struct MyApp : App {
         g.scale(
           // predators can be up to 1.5x larger than prey
           // (b.type == 0) ? 0.03 * rnd::uniform(0.83, 1.0) : 0.09 * rnd::uniform(0.5, 1.0)
-          (i % 13 != 0) ? 0.125 : 0.112
+          (i % 13 != 0) ? 0.1 : 0.06
           // 0.167
         );
         g.draw(

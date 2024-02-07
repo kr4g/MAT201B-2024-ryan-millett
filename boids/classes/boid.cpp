@@ -28,8 +28,8 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{5.5f};     // Minimum distance from edge to start turning
-    float turnRateFactor{0.13f};       // Factor to adjust turning rate
+    float minEdgeProximity{9.5f};     // Minimum distance from edge to start turning
+    float turnRateFactor{0.23f};       // Factor to adjust turning rate
 
     // Boid() : {}
     
@@ -156,14 +156,14 @@ public:
 
     void detectSurroundings(const Octree& tree, float size, const std::vector<Nav*>& navs) {
         vector<int> i_navs;
-        tree.queryRegion(bNav.pos(), Vec3f(10, 10, 10), i_navs);
+        tree.queryRegion(bNav.pos(), Vec3f(12, 12, 12), i_navs);
 
         heading(navs, i_navs);
         alignment(navs, i_navs);
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
-        handleBoundary(size*1.333);
+        handleBoundary(size*1.1667);
         // originAvoidance(5.0);
     }
 
