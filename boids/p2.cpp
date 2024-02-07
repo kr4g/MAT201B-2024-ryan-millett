@@ -11,7 +11,7 @@
 // #include "../utils/octtree.cpp"
 #include "classes/boid.cpp"
 
-const int CUBE_SIZE = 27;
+const int CUBE_SIZE = 20;
 
 const int MAX_BOIDS = 5000;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
@@ -51,6 +51,32 @@ struct Axes {
     g.draw(mesh);
   }
 };
+
+// Assuming Vec3f is the vector class used for positions and that you have a list or array of object positions
+Vec3f calculateCenterOfMass(const std::vector<Vec3f>& positions) {
+    Vec3f center(0, 0, 0);
+    for (auto& pos : positions) {
+        center += pos;
+    }
+    center /= positions.size();
+    return center;
+}
+
+void updateCameraPosition(al::Nav& nav, const Vec3f& centerOfMass, float distance) {
+    // This example assumes you have an al::Nav object for the camera (`nav`)
+    // and a desired distance from the center of mass to maintain.
+
+    // Calculate a simple orbit around the center of mass
+    static float angle = 0.0f;  // Static to keep increasing each frame
+    angle += 0.01;  // Adjust rotation speed as needed
+
+    // Calculate new camera position
+    Vec3f newPosition = centerOfMass + Vec3f(cos(angle) * distance, 0, sin(angle) * distance);
+
+    // Update camera position and orientation
+    nav.pos(newPosition);
+    nav.faceToward(centerOfMass);  // Make the camera face towards the center of mass
+}
 
 string slurp(string fileName);  // forward declaration
 
@@ -264,12 +290,13 @@ struct MyApp : App {
       Vec3f springForce = (displacement < CUBE_SIZE) ? 0.0 : Vec3f(-foodPosition[i]).normalize() * (0.001 * displacement);
       force[i] += springForce * 0.25 + springForce * randomVec3f(0.05) * 0.1; // spring force
       if (displacement > CUBE_SIZE) {
-        force[i] += -velocity[i] * 0.97;     // drag force
+        force[i] += -velocity[i] * 5.97;     // drag force
       }
+      force[i] += -velocity[i] * 1.97;     // drag force
 
       if (currentDistance < CUBE_SIZE * 0.1) {
         force[i] += Vec3f(-foodPosition[i]).normalize() * 0.000001;
-        force[i] += -velocity[i] * 0.001;     // drag force
+        force[i] += -velocity[i] * 0.01;     // drag force
       }
 
       // force toward the target

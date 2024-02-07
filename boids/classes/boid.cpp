@@ -28,7 +28,7 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{5.5f};     // Minimum distance from edge to start turning
+    float minEdgeProximity{9.5f};     // Minimum distance from edge to start turning
     float turnRateFactor{0.13f};       // Factor to adjust turning rate
 
     // Boid() : {}
@@ -46,7 +46,7 @@ public:
         float proximity = (size - xDist) / size;
         if (xDist < minEdgeProximity) {
             bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
-            if (xDist < 0.15) { 
+            if (xDist < 0.75) { 
                 bNav.quat().set(rnd::uniformS(), bNav.quat().y, bNav.quat().z, rnd::uniformS()).normalize();
             }
         } 
@@ -54,7 +54,7 @@ public:
         proximity = (size - yDist) / size;
         if (yDist < minEdgeProximity) {
             bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
-            if (yDist < 0.15) { 
+            if (yDist < 0.75) { 
                 bNav.quat().set(bNav.quat().x, rnd::uniform(), bNav.quat().z, rnd::uniformS()).normalize();
             }
         } 
@@ -62,7 +62,7 @@ public:
         proximity = (size - zDist) / size;
         if (zDist < minEdgeProximity) {
             bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*proximity);
-            if (zDist < 0.15) { 
+            if (zDist < 0.75) { 
                 bNav.quat().set(bNav.quat().x, bNav.quat().y, rnd::uniformS(), rnd::uniformS()).normalize();
             }
         }
@@ -71,9 +71,27 @@ public:
     void originAvoidance(float size) {
         float dist = bNav.pos().mag();
         float turnRate = turnRateFactor * (1.0 - dist / size);
-        if (dist < 0.25) {
-            bNav.faceToward(Vec3d(-bNav.pos().x, -bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate);
+        if (dist < 0.95) {
+            Vec3d away = bNav.pos().normalize() / dist;
+            bNav.faceToward(away, bNav.uu(), turnRate);
         }
+    }
+
+    void heading(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
+        // if heading into other oncoming boids (ie, boids not heading in the same direction), turn away
+        for (int i : i_navs) {
+            // determine how oncoming the boid is (ie, how much it is heading towards the boid in question)
+            Vec3f otherPos = navs[i]->pos();
+            Vec3f otherHeading = navs[i]->uf();
+            // the more oncoming, the more it should turn away
+            float oncoming = bNav.uf().dot(otherHeading);
+            float turnRate = turnRateFactor * (otherPos - bNav.pos()).mag() / 20.0;
+            if (oncoming < 0.0) {
+                bNav.faceToward(bNav.pos() + otherHeading, bNav.uu(), turnRate);
+            }
+            
+            
+        }    
     }
 
     // XXX - TODO:  boid flocking dynamics
@@ -90,7 +108,7 @@ public:
         if (alignCount > 0) {
             averageHeading /= alignCount;
             // Normalize to get direction and apply alignment
-            bNav.faceToward(bNav.pos() + averageHeading.normalized(), Vec3f(0, 1, 0), 0.2);
+            bNav.faceToward(bNav.pos() + averageHeading.normalized(), bNav.uu(), 0.2);
         }
     }
 
@@ -99,7 +117,7 @@ public:
         int closeBoids = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 1.5) {
+            if (dist < 1.67) {
                 Vec3f away = (bNav.pos() - navs[i]->pos()).normalize() / dist;
                 separationForce += away;
                 closeBoids++;
@@ -108,7 +126,7 @@ public:
         if (closeBoids > 0) {            
             separationForce /= closeBoids;
             // Apply the separation force to adjust boid's direction
-            bNav.faceToward(bNav.pos() + separationForce, Vec3f(0, 1, 0), 0.75);
+            bNav.faceToward(bNav.pos() + separationForce, bNav.uu(), 0.75);
         }
     }
 
@@ -117,7 +135,7 @@ public:
         int cohesionCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist > 3.5) {
+            if (dist > 4.0) {
                 centerOfMass += navs[i]->pos();
                 cohesionCount++;
             }
@@ -134,24 +152,32 @@ public:
         vector<int> i_navs;
         tree.queryRegion(bNav.pos(), Vec3f(5, 5, 5), i_navs);
 
+        heading(navs, i_navs);
         alignment(navs, i_navs);
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
         handleBoundary(size*1.1667);
-        originAvoidance(size*1.1667);
+        originAvoidance(size*0.333);
     }
 
     void findFood(const Octree& tree, float size, const std::vector<Vec3f>& food, const std::vector<float>& mass) {
+        hunger = (hunger > 1.0) ? hunger = 1.0 : hunger; 
+        if ((target - bNav.pos()).magSqr() < 0.1) {
+            hunger -= 0.0001; // make proportional to mass of food
+            target = Vec3d(rnd::uniformS(), rnd::uniformS(), rnd::uniformS());
+        }
         vector<int> i_food;
         tree.queryRegion(bNav.pos(), Vec3f(size, size, size), i_food);
-        if (i_food.size() > 0) {
+        float si = i_food.size();
+        if (si > 0) {
             int biggestFood = i_food[0];
             for (int i : i_food) {
                 // float foodMass = mass[i];
                 if (mass[i] > mass[biggestFood]) {
                     biggestFood = i;
                 }
+                hunger += i / si; // make proportional to mass of food
             }
             seek(food[biggestFood], 0.1);
         }        
@@ -168,11 +194,11 @@ public:
         bNav.step(dt);        
     }
 
-    virtual void updateParams() {
+    virtual void updateParams(float dts) {
         if (age > lifespan) {
             lifeStatus = false;
         }
-        age += ageRate + (ageRate * fear);  // Fear increases rate of aging
+        age += ageRate*(dts/5.0) + (ageRate * fear);  // Fear increases rate of aging
         // float deathProximity = age / lifespan;        
         // if (fear > 1.0) {
         //     lifeStatus = rnd::uniform() > deathProximity;
