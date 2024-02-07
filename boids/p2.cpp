@@ -16,7 +16,7 @@ const int CUBE_SIZE = 25;
 const int MAX_BOIDS = 7000;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
-const int N_PARTICLES = 6500;
+const int N_PARTICLES = 9500;
 
 using namespace al;
 
@@ -180,7 +180,7 @@ struct MyApp : App {
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
     foodMesh.primitive(Mesh::POINTS);
     for (int _ = 0; _ < N_PARTICLES; _++) {
-      foodMesh.vertex(randomVec3f(CUBE_SIZE*2.5));
+      foodMesh.vertex(randomVec3f(CUBE_SIZE*2.667));
       foodMesh.color(randomColor());
 
       float m = rnd::uniform(8.0, 0.5);

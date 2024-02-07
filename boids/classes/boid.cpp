@@ -163,7 +163,7 @@ public:
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
-        handleBoundary(size*1.0833);
+        handleBoundary(size*1.333);
         // originAvoidance(5.0);
     }
 
