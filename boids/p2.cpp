@@ -120,7 +120,7 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 1.667);
+    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 2.1667);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(0, 0, CUBE_SIZE * 2.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
@@ -210,7 +210,7 @@ struct MyApp : App {
   //   f.set(r(), r(), r());
   // }
 
-  Vec3d target = Vec3d(r(), r(), r());
+  Vec3d target = randomVec3f(CUBE_SIZE*0.333);
   void setUp() {
       navPtrs.clear();
       boids.clear();
@@ -250,12 +250,12 @@ struct MyApp : App {
     if (phase > phaseReset) {
       phase -= phaseReset;
       // findFood = true;
-      target = randomVec3f(CUBE_SIZE*0.667);
+      target = randomVec3f(CUBE_SIZE*0.833);
     } else {
       std::vector<int> i_boids;
       boidTree.queryRegion(target, Vec3f(15, 15, 15), i_boids);
       if (i_boids.size() > 100) {
-        target = randomVec3f(CUBE_SIZE*0.833);
+        target = randomVec3f(CUBE_SIZE*0.9692);
       }
     }
 
@@ -266,16 +266,17 @@ struct MyApp : App {
       if (dist < 3.5) {
         b.findFood(foodTree, 15, foodPosition, mass);
         // target = Vec3d(r(), r(), r());
-      } else if (dist < 5.5) {
-        // b.seek(b.target, rnd::uniform(0.01, 0.05), rnd::uniform(0.05, 0.45));
-        b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
-      } else if (dist < 10.5) {
+      } else if (dist < 6.5) {
+        // b.seek(b.target, rnd::uniform(0.01, 0.05), rnd::uniform(0.05, 0.35));
+        b.seek(randomVec3f(CUBE_SIZE*0.5), rnd::uniform(0.001, 0.1), rnd::uniform(0.15, 0.95));
+      } 
+      if (dist < 15.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
         std::vector<int> i_boids;
         boidTree.queryRegion(b.target, Vec3f(9, 9, 9), i_boids);
         if (i_boids.size() > 50) {
           // b.findFood(foodTree, 10, foodPosition, mass);          
-          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.05), rnd::uniform(0.15, 0.95));
+          b.seek(randomVec3f(CUBE_SIZE*0.1667), rnd::uniform(0.001, 0.05), rnd::uniform(0.15, 0.95));
         } 
       } else {        
         b.seek(target, rnd::uniform(0.0008333, 0.008333), rnd::uniform(0.15, 0.95));

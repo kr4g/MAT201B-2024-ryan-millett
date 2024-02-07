@@ -54,7 +54,7 @@ public:
         proximity = (size - yDist) / size;
         if (yDist < minEdgeProximity) {
             bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
-            if (yDist < 0.75) { 
+            if (yDist < 1.75) { 
                 bNav.quat().set(bNav.quat().x, rnd::uniform(), bNav.quat().z, rnd::uniformS()).normalize();
             }
         } 
@@ -62,7 +62,7 @@ public:
         proximity = (size - zDist) / size;
         if (zDist < minEdgeProximity) {
             bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
-            if (zDist < 0.75) { 
+            if (zDist < 1.75) { 
                 bNav.quat().set(bNav.quat().x, bNav.quat().y, rnd::uniformS(), rnd::uniformS()).normalize();
             }
         }
