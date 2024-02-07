@@ -16,7 +16,7 @@ const int CUBE_SIZE = 25;
 const int MAX_BOIDS = 6000;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
-const int N_PARTICLES = 1600;
+const int N_PARTICLES = 6500;
 
 using namespace al;
 
@@ -120,7 +120,7 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.833, CUBE_SIZE * 1.0833);
+    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 1.333);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(0, 0, CUBE_SIZE * 2.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
@@ -180,7 +180,7 @@ struct MyApp : App {
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
     foodMesh.primitive(Mesh::POINTS);
     for (int _ = 0; _ < N_PARTICLES; _++) {
-      foodMesh.vertex(randomVec3f(CUBE_SIZE));
+      foodMesh.vertex(randomVec3f(CUBE_SIZE*2.5));
       foodMesh.color(randomColor());
 
       float m = rnd::uniform(8.0, 0.5);
@@ -192,8 +192,8 @@ struct MyApp : App {
       foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
 
       // separate state arrays
-      velocity.push_back(randomVec3f(0.025));
-      force.push_back(randomVec3f(0.000001));
+      velocity.push_back(randomVec3f(-0.025));
+      force.push_back(randomVec3f(-0.000001));
     }
   }
   

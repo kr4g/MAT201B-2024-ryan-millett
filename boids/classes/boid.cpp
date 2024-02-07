@@ -41,7 +41,7 @@ public:
         float zDist = std::min(std::abs(bNav.pos().z - size), std::abs(bNav.pos().z + size));
 
         float closestDist = std::min({xDist, yDist, zDist});
-        float turnRate = turnRateFactor;// / closestDist;
+        float turnRate = turnRateFactor * 0.5;// / closestDist;
 
         float proximity = (size - xDist) / size;
         if (xDist < minEdgeProximity) {
