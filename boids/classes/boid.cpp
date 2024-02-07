@@ -100,7 +100,6 @@ public:
         }    
     }
 
-    // XXX - TODO:  boid flocking dynamics
     void alignment(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
         Vec3f averageHeading(0, 0, 0);
         int alignCount = 0;
@@ -150,7 +149,7 @@ public:
         if (cohesionCount > 0) {
             centerOfMass /= cohesionCount;
             // Move towards the center of mass of nearby boids
-            float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 10.0, 0.75);
+            float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 25.0, 0.75);
             bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), turnRate);
         }
     }
@@ -193,7 +192,7 @@ public:
     void seek(Vec3d a, double amt, float smooth = 0.1) { 
         target.set(a);
         bNav.smooth(smooth);
-        bNav.faceToward(target, Vec3d(0, 1, 0), amt);
+        bNav.faceToward(target, bNav.uu(), amt);
     }
 
     void updatePosition(double v, double dt) {
