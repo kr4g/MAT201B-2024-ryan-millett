@@ -169,66 +169,67 @@ struct MyApp : App {
   //   f.set(r(), r(), r());
   // }
 
+  Vec3d target = Vec3d(r(), r(), r());
   void setUp() {
       navPtrs.clear();
       for (auto& b : boids) {
           randomize(b.bNav);
           navPtrs.push_back(&b.bNav); // address of the nav
+          b.seek(target, rnd::uniform(0.01, 0.08), rnd::uniform(0.05, 0.5));
       }
   }
   
   void randomize(Nav& boidNav) {
-    boidNav.pos(r(), r(), r());
+    boidNav.pos(randomVec3f(CUBE_SIZE*0.33));
     boidNav.quat().set(r(), r(), r(), r()).normalize();
   }
   
   bool freeze = false;
   double phase = 0;
-  double foodPhase = 0;
-  Vec3d target = Vec3d(r(), r(), r());
   void onAnimate(double dt) override {
     if (freeze) return;
     dt *= timeStep.get();
     time += dt;
 
+    vector<Nav*> &boidPosition(navPtrs);
+    vector<Vec3f> &foodPosition(foodMesh.vertices());
 
-    vector<Nav*> &bPosition(navPtrs);
+    Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
+    foodTree.build(foodPosition);
 
     Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.15f);
-    boidTree.build(bPosition);
+    boidTree.build(boidPosition);  
 
-    foodPhase += dt;
+    // bool findFood = false;
     phase += dt;
-    if (phase >= 30) {      
-      phase -= 30;
+    float phaseReset = 30 * timeStep.get();
+    if (phase > phaseReset) {
+      phase -= phaseReset;
+      // findFood = true;
       target = Vec3d(r(), r(), r());
     }
-    
 
     for (auto& b : boids) {
-      // boid self-orientation algorithm
-      b.seek(target, rnd::uniform(0.001, 0.008), rnd::uniform(0.05, 0.5));
-      b.detectSurroundings(boidTree, CUBE_SIZE, bPosition);
+      if ((b.bNav.pos() - target).mag() < 0.1) {
+        b.findFood(foodTree, 10, foodPosition, mass);
+      } else {
+        b.seek(target, rnd::uniform(0.001, 0.008), rnd::uniform(0.05, 0.5));
+      }
+      b.detectSurroundings(boidTree, CUBE_SIZE, boidPosition);
       b.updatePosition(rnd::uniform(0.667, 0.833), dt);
     }
 
-    bool foodReset = false;
-    if (foodPhase > 50) {
-      foodPhase -= 50;       
-      foodReset = true;
-    }
-
-    vector<Vec3f> &foodPosition(foodMesh.vertices());
-
-    Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 1.0f);
-    foodTree.build(foodPosition);
     for (int i = 0; i < foodPosition.size(); i++) {
       float currentDistance = foodPosition[i].mag();
       float displacement = currentDistance - CUBE_SIZE * 0.667;
       Vec3f springForce = (displacement < CUBE_SIZE) ? 0.0 : Vec3f(-foodPosition[i]).normalize() * (0.001 * displacement);
-      force[i] += springForce * 0.5 + springForce * randomVec3f(0.001) * 0.01; // spring force
+      force[i] += springForce * 0.25 + springForce * randomVec3f(0.01) * 0.1; // spring force
       if (displacement > CUBE_SIZE) {
-        force[i] += -velocity[i] * 0.05;     // drag force
+        force[i] += -velocity[i] * 0.09;     // drag force
+      }
+
+      if (currentDistance < CUBE_SIZE * 0.01) {
+        force[i] += Vec3f(-foodPosition[i]).normalize() * 0.01;
       }
 
       // "semi-implicit" Euler integration
@@ -315,7 +316,7 @@ struct MyApp : App {
       }
     }
 
-    axes.draw(g);
+    // axes.draw(g);
     
     g.shader(pointShader);
     g.shader().uniform("pointSize", pointSize / 100);

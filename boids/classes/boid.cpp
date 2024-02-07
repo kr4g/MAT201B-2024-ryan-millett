@@ -28,8 +28,8 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{1.5f};     // Minimum distance from edge to start turning
-    float turnRateFactor{0.03f};       // Factor to adjust turning rate
+    float minEdgeProximity{5.5f};     // Minimum distance from edge to start turning
+    float turnRateFactor{0.13f};       // Factor to adjust turning rate
 
     // Boid() : {}
     
@@ -41,16 +41,38 @@ public:
         float zDist = std::min(std::abs(bNav.pos().z - size), std::abs(bNav.pos().z + size));
 
         float closestDist = std::min({xDist, yDist, zDist});
-        float turnRate = turnRateFactor / closestDist; // Adjust turn rate based on distance
+        float turnRate = turnRateFactor;// / closestDist;
 
+        float proximity = (size - xDist) / size;
         if (xDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), Vec3d(0, 1, 0), turnRate);
-        }
+            bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
+            if (xDist < 0.15) { 
+                bNav.quat().set(rnd::uniformS(), bNav.quat().y, bNav.quat().z, rnd::uniformS()).normalize();
+            }
+        } 
+
+        proximity = (size - yDist) / size;
         if (yDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), Vec3d(0, 1, 0), turnRate);
-        }
+            bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
+            if (yDist < 0.15) { 
+                bNav.quat().set(bNav.quat().x, rnd::uniform(), bNav.quat().z, rnd::uniformS()).normalize();
+            }
+        } 
+        
+        proximity = (size - zDist) / size;
         if (zDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), Vec3d(0, 1, 0), turnRate);
+            bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*proximity);
+            if (zDist < 0.15) { 
+                bNav.quat().set(bNav.quat().x, bNav.quat().y, rnd::uniformS(), rnd::uniformS()).normalize();
+            }
+        }
+    }
+
+    void originAvoidance(float size) {
+        float dist = bNav.pos().mag();
+        float turnRate = turnRateFactor * (1.0 - dist / size);
+        if (dist < 0.25) {
+            bNav.faceToward(Vec3d(-bNav.pos().x, -bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate);
         }
     }
 
@@ -103,7 +125,8 @@ public:
         if (cohesionCount > 0) {
             centerOfMass /= cohesionCount;
             // Move towards the center of mass of nearby boids
-            bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), 0.075);
+            float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 10.0, 0.75);
+            bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), turnRate);
         }
     }
 
@@ -115,7 +138,23 @@ public:
         cohesion(navs, i_navs);
         separation(navs, i_navs);
 
-        handleBoundary(size);
+        handleBoundary(size*1.1667);
+        originAvoidance(size*1.1667);
+    }
+
+    void findFood(const Octree& tree, float size, const std::vector<Vec3f>& food, const std::vector<float>& mass) {
+        vector<int> i_food;
+        tree.queryRegion(bNav.pos(), Vec3f(size, size, size), i_food);
+        if (i_food.size() > 0) {
+            int biggestFood = i_food[0];
+            for (int i : i_food) {
+                // float foodMass = mass[i];
+                if (mass[i] > mass[biggestFood]) {
+                    biggestFood = i;
+                }
+            }
+            seek(food[biggestFood], 0.1);
+        }        
     }
 
     void seek(Vec3d a, double amt, float smooth = 0.1) { 
