@@ -45,7 +45,7 @@ public:
 
         float proximity = (size - xDist) / size;
         if (xDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
+            bNav.faceToward(Vec3d(-bNav.pos().x, bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
             if (xDist < 1.75) { 
                 bNav.quat().set(rnd::uniformS(), bNav.quat().y, bNav.quat().z, rnd::uniformS()).normalize();
             }
@@ -53,7 +53,7 @@ public:
 
         proximity = (size - yDist) / size;
         if (yDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
+            bNav.faceToward(Vec3d(bNav.pos().x, -bNav.pos().y, bNav.pos().z), bNav.uu(), turnRate*proximity);
             if (yDist < 1.75) { 
                 bNav.quat().set(bNav.quat().x, rnd::uniform(), bNav.quat().z, rnd::uniformS()).normalize();
             }
@@ -61,7 +61,7 @@ public:
         
         proximity = (size - zDist) / size;
         if (zDist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*sqrt(proximity));
+            bNav.faceToward(Vec3d(bNav.pos().x, bNav.pos().y, -bNav.pos().z), bNav.uu(), turnRate*proximity);
             if (zDist < 1.75) { 
                 bNav.quat().set(bNav.quat().x, bNav.quat().y, rnd::uniformS(), rnd::uniformS()).normalize();
             }
@@ -105,7 +105,7 @@ public:
         int alignCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 5.0) { 
+            if (dist < 10.0) { 
                 averageHeading += navs[i]->uf();
                 alignCount++;
             }
@@ -123,7 +123,7 @@ public:
         int closeBoids = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 2.667) {
+            if (dist < 3.0) {
                 Vec3f away = (bNav.pos() - navs[i]->pos()).normalize() / dist;
                 separationForce += away;
                 closeBoids++;
@@ -141,7 +141,7 @@ public:
         int cohesionCount = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist > 5.0) {
+            if (dist > 7.0) {
                 centerOfMass += navs[i]->pos();
                 cohesionCount++;
             }
@@ -158,7 +158,7 @@ public:
         vector<int> i_navs;
         tree.queryRegion(bNav.pos(), Vec3f(12, 12, 12), i_navs);
 
-        heading(navs, i_navs);
+        // heading(navs, i_navs);
         alignment(navs, i_navs);
         cohesion(navs, i_navs);
         separation(navs, i_navs);
