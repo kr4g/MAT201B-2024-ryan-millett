@@ -123,7 +123,7 @@ public:
         int closeBoids = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 2.167) {
+            if (dist < 2.667) {
                 Vec3f away = (bNav.pos() - navs[i]->pos()).normalize() / dist;
                 separationForce += away;
                 closeBoids++;
