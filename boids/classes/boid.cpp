@@ -123,7 +123,7 @@ public:
         int closeBoids = 0;
         for (int i : i_navs) {
             float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 2.0) {
+            if (dist < 1.5) {
                 Vec3f away = (bNav.pos() - navs[i]->pos()).normalize() / dist;
                 separationForce += away;
                 closeBoids++;
@@ -156,7 +156,7 @@ public:
 
     void detectSurroundings(const Octree& tree, float size, const std::vector<Nav*>& navs) {
         vector<int> i_navs;
-        tree.queryRegion(bNav.pos(), Vec3f(12, 12, 12), i_navs);
+        tree.queryRegion(bNav.pos(), Vec3f(9, 9, 9), i_navs);
 
         // heading(navs, i_navs);
         alignment(navs, i_navs);
