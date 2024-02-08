@@ -13,7 +13,7 @@
 
 const int CUBE_SIZE = 30;
 
-const int MAX_BOIDS = 6000;
+const int MAX_BOIDS = 7200;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
 const int N_PARTICLES = 16500;
