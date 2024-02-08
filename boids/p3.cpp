@@ -268,18 +268,23 @@ struct MyApp : App {
         b.findFood(foodTree, 15, foodPosition, mass);
         // target = Vec3d(r(), r(), r());
       } else if (dist < 5.5) {
-        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.05, 0.15));
+        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.08, 0.21));
         // b.seek(b.target, rnd::uniform(0.05, 0.1), rnd::uniform(0.05, 0.15));
         // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
       } else if (dist < 10.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
         std::vector<int> i_boids;
-        boidTree.queryRegion(b.target, Vec3f(14, 14, 14), i_boids);
+        boidTree.queryRegion(b.target, Vec3f(10, 10, 10), i_boids);
         if (i_boids.size() > 50) {
+          if (b.hunger > 0.5) {
+            b.findFood(foodTree, 10, foodPosition, mass);
+          } else {
+            b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.005, 0.1), rnd::uniform(0.15, 0.95));
+          }
           // b.findFood(foodTree, 10, foodPosition, mass);          
-          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.005, 0.1), rnd::uniform(0.15, 0.95));
+          // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.005, 0.1), rnd::uniform(0.15, 0.95));
         } 
-        b.attentionSpan -= 0.001;
+        b.attentionSpan -= 0.01;
       } else {        
         b.seek(target, rnd::uniform(0.0008333, 0.008333), rnd::uniform(0.15, 0.95));
         b.attentionSpan -= 0.001;
