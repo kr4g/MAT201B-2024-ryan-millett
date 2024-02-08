@@ -120,7 +120,7 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 1.333);
+    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 1.167);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(0, 0, CUBE_SIZE * 2.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
@@ -274,6 +274,9 @@ struct MyApp : App {
         // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
         b.attentionSpan -= 0.05;
         b.hunger += 0.001;
+        if (b.attentionSpan < 0.1) {
+          b.findFood(foodTree, 15, foodPosition, mass);
+        }
       } else if (dist < 10.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
         std::vector<int> i_boids;
