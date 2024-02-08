@@ -60,75 +60,40 @@ public:
         }
     }
 
-    // void originAvoidance(float avoidanceRadius) {
-    //     float dist = bNav.pos().mag();
-    //     // if the boid is too close to the origin and not moving away, turn away
-    //     // this means that if the boid is within the distance but leaving the origin, dont turn away
-    //     if (dist < avoidanceRadius) {
-    //         // how much the boid is heading away from the origin
-    //         float theta = bNav.uf().dot(bNav.pos().normalize());
-    //         if (theta > 0.0) { // if the boid is moving away from the origin
-    //             // steer them slightly more away from the origin proportional to how close they are and where they are heading
-    //             float turnRate = turnRateFactor * (1.0 - dist / avoidanceRadius);
-    //             Vec3d away = (bNav.pos().normalize() * 0.1) / dist;
-    //             // theta determines how much the boid is heading away from the origin
-    //             // the more it is heading away, the more it should turn away
-
-    //         } else {
-    //             // turnRate is a function of both proximity to the origin and how much the boid is heading away (theta)
-    //             // the more the boid is facing the origin, the more it should turn away
-    //             float turnRate = turnRateFactor * (1.0 - dist / avoidanceRadius);
-    //             // Vec3d away = (bNav.pos().normalize() * (th              
-
-
-    //             bNav.faceToward(away, bNav.uu(), turnRate);
-    //         // bNav.faceToward(away, bNav.uu(), turnRate);
-    //         }
-    //     }
-    // }
-
     void originAvoidance(float avoidanceRadius) {
-        Vec3d pos = bNav.pos(); // Position of the boid relative to the origin
-        Vec3d forward = bNav.uf(); // Forward direction of the boid
-        float dist = pos.mag(); // Distance from the origin
+        Vec3d pos = bNav.pos(); 
+        Vec3d forward = bNav.uf(); 
+        float dist = pos.mag(); 
 
         if (dist < avoidanceRadius) {
-            Vec3d awayFromOrigin = pos.normalize(); // Direction away from the origin
-            float theta = forward.dot(awayFromOrigin); // Measure of orientation towards the origin
+            Vec3d awayFromOrigin = pos.normalize(); 
+            float theta = forward.dot(awayFromOrigin); 
 
             if (theta < 0) { // If facing towards the origin, theta is negative
-                // Make theta positive and scale by proximity to the origin for the turn rate calculation
-                theta = -theta; // Convert to positive to indicate "degree" of facing towards the origin
-                float proximityFactor = 1.0 - (dist / avoidanceRadius); // Scales up as the boid gets closer to the origin
-
-                // Calculate turn rate as a function of both theta and proximity to the origin
-                // This ensures the turn rate is higher when the boid is closer and more directly facing the origin
-                float turnRate = std::min(theta * proximityFactor, 1.0f); // Clamp turn rate to a maximum of 1
-
-                // Determine the new direction by biasing the forward vector away from the origin
+                theta = -theta; // "degree" of facing towards the origin
+                float proximityFactor = 1.0 - (dist / avoidanceRadius);               
+                float turnRate = std::min(theta * proximityFactor, 1.0f);
                 Vec3d biasedForward = forward + awayFromOrigin * theta;
-                biasedForward.normalize(); // Ensure the direction is normalized
-
-                // Steer the boid towards this new direction
+                biasedForward.normalize(); 
                 bNav.faceToward(pos + biasedForward, bNav.uu(), turnRate);
             }
         }
     }
 
     void originAvoidance(float avoidanceRadius, float preparationRadius) {
-        Vec3d pos = bNav.pos(); // Position of the boid relative to the origin
-        float dist = pos.mag(); // Distance from the origin
+        Vec3d pos = bNav.pos(); 
+        float dist = pos.mag(); 
         if (dist < preparationRadius) {
-            Vec3d forward = bNav.uf(); // Forward direction of the boid
+            Vec3d forward = bNav.uf(); 
             Vec3d biasedForward = Vec3d(0, 0, 0);
-            Vec3d awayFromOrigin = pos.normalize(); // Direction away from the origin
-            float theta = forward.dot(awayFromOrigin); // Measure of orientation towards the origin
+            Vec3d awayFromOrigin = pos.normalize();
+            float theta = forward.dot(awayFromOrigin);
             float turnRate = turnRateFactor * (1.0 - dist / preparationRadius);
             if (theta < 0) { 
                 theta = -theta; 
                 float proximityFactor = 1.0 - (dist / avoidanceRadius);
                 biasedForward = forward + awayFromOrigin * theta * proximityFactor;
-                biasedForward.normalize(); // Ensure the direction is normalized
+                biasedForward.normalize();
                 bNav.faceToward(pos + biasedForward, bNav.uu(), 0.005);
                 if (dist < avoidanceRadius) {
                     turnRate = turnRateFactor * (1.0 - dist / avoidanceRadius);
@@ -136,8 +101,6 @@ public:
                     bNav.faceToward(bNav.pos() + biasedForward, bNav.uu(), turnRate);
                 }                
             }
-
-            
             // Vec3d biasedForward = forward + awayFromOrigin * std::abs(theta);
             // biasedForward.normalize(); // Ensure the direction is normalized
 
@@ -145,8 +108,6 @@ public:
             // bNav.faceToward(pos + biasedForward, bNav.uu(), turnRate);
         }
     }
-
-
 
 
     void heading(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
@@ -185,11 +146,7 @@ public:
                 // Use the boid's up vector or a random up vector as a fallback
                 perpendicularDirection = bNav.uu(); // Or generate a random up vector if preferred
             }
-
-            // Adjust the turn rate based on the seriousness of the oncoming threat
             float turnRate = std::min(turnRateFactor * seriousnessFactor, 1.0f);
-
-            // Steer the boid in the perpendicular direction to avoid collision
             bNav.faceToward(bNav.pos() + perpendicularDirection, bNav.uu(), turnRate);
         }
     }
@@ -202,39 +159,28 @@ public:
             Vec3f otherPos = navs[i]->pos();
             Vec3f toOther = otherPos - bNav.pos();
             Vec3f otherHeading = navs[i]->uf();
-
-            // Calculate angles to assess collision risk
             float angleToOther = acos(bNav.uf().dot(toOther.normalize()));
             float angleFromOther = acos(otherHeading.dot(-toOther.normalize()));
 
-            // Determine risk level based on angles
             float riskLevel = 0.0f;
             if (angleToOther < M_PI / 4 && angleFromOther < M_PI / 4) { // Head-on collision
                 riskLevel = 1.0f;
             } else if (std::abs(angleToOther - angleFromOther) < M_PI / 6) { // High risk of perpendicular collision
-                riskLevel = 0.5f; // Adjust risk level based on scenario
+                riskLevel = 0.5f;
             }
 
-            // Adjust avoidance direction based on risk level
             if (riskLevel > highestRisk) {
                 highestRisk = riskLevel;
-                avoidanceDirection = toOther.cross(bNav.uf()).normalize(); // Example avoidance direction
+                avoidanceDirection = toOther.cross(bNav.uf()).normalize();
             }
         }
 
         if (highestRisk > 0) {
-            // Scale turn rate by risk level
-            float turnRate = highestRisk; // Simplified for example, adjust as needed
-
-            // Steer away based on calculated avoidance direction
+            float turnRate = highestRisk; 
             bNav.faceToward(bNav.pos() + avoidanceDirection, bNav.uu(), turnRate);
         }
     }
 
-
-
-
-    // XXX - TODO:  boid flocking dynamics
     void alignment(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
         Vec3f averageHeading(0, 0, 0);
         int alignCount = 0;
@@ -247,7 +193,6 @@ public:
         }
         if (alignCount > 0) {
             averageHeading /= alignCount;
-            // Normalize to get direction and apply alignment
             float turnRate = turnRateFactor * (bNav.pos() - bNav.pos() + averageHeading).mag() / 30.0;
             bNav.faceToward(bNav.pos() + averageHeading.normalized(), bNav.uu(), turnRate);
         }
@@ -266,7 +211,6 @@ public:
         }
         if (closeBoids > 0) {            
             separationForce /= closeBoids;
-            // Apply the separation force to adjust boid's direction
             bNav.faceToward(bNav.pos() + separationForce, bNav.uu(), 0.75);
         }
     }
@@ -283,7 +227,6 @@ public:
         }
         if (cohesionCount > 0) {
             centerOfMass /= cohesionCount;
-            // Move towards the center of mass of nearby boids
             float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 30.0, 0.75);
             bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), turnRate);
         }
