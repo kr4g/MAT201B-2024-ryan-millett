@@ -269,13 +269,14 @@ struct MyApp : App {
         b.findFood(foodTree, 15, foodPosition, mass);
         // target = Vec3d(r(), r(), r());
       } else if (dist < 5.5) {
-        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.08, 0.167));
+        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.08, 0.367));
         // b.seek(b.target, rnd::uniform(0.05, 0.1), rnd::uniform(0.05, 0.15));
         // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
         b.attentionSpan -= 0.05;
         b.hunger += 0.001;
         if (b.attentionSpan < 0.1) {
-          b.findFood(foodTree, 15, foodPosition, mass);
+          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.01, 0.4), rnd::uniform(0.15, 0.95));
+          // b.findFood(foodTree, 15, foodPosition, mass);
         }
       } else if (dist < 10.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
