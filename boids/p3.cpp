@@ -146,29 +146,29 @@ struct MyApp : App {
 
     // Male Prey Body: Enhanced Blue Spectrum with Variation and Specific Highlights
     preyMeshMale.primitive(Mesh::TRIANGLE_FAN);
-		preyMeshMale.vertex(0, 0, -3); // Tip of the body ("nose")
-		preyMeshMale.color(0, 0.5, 1.0); // Brightest blue for the nose
-		preyMeshMale.vertex(0, 1, 0); // Top center edge ("back")
-		preyMeshMale.color(0.45, 0.17, 0.28); // Darker blue for the back
-		preyMeshMale.vertex(-3, -1, 0); // Left edge
-		preyMeshMale.color(0, 0.15, 0.7); // Royal blue for depth
-		preyMeshMale.vertex(3, -1, 0); // Right edge
-		preyMeshMale.color(0.08, 0.08, 0.60); // Royal blue for depth
-		preyMeshMale.vertex(0, 1, 0); // Top center edge, closing the fan
-		preyMeshMale.color(0.45, 0.17, 0.28); // Darker blue for the back
+		preyMeshMale.vertex(0, 0, -3);        // Noise
+		preyMeshMale.color(0, 0.5, 1.0);
+		preyMeshMale.vertex(0, 1, 0);         // Top center edge ("back")
+		preyMeshMale.color(0.45, 0.17, 0.28);
+		preyMeshMale.vertex(-3, -1, 0);       // Left edge
+		preyMeshMale.color(0, 0.15, 0.7);
+		preyMeshMale.vertex(3, -1, 0);        // Right edge
+		preyMeshMale.color(0.08, 0.08, 0.60);
+		preyMeshMale.vertex(0, 1, 0);         // Top center edge, closing the fan
+		preyMeshMale.color(0.45, 0.17, 0.28);
 
     // Female Prey Body: Warm Tones with Enhanced Variation and Specific Highlights
     preyMeshFemale.primitive(Mesh::TRIANGLE_FAN);
-		preyMeshFemale.vertex(0, 0, -5); // Tip of the body ("nose")
-		preyMeshFemale.color(0.6, 1.0, 0.2); // Brightest lime green for the nose
-		preyMeshFemale.vertex(0, 0.5, 0); // Top center edge ("back")
-		preyMeshFemale.color(0.2, 0.7, 0.1); // Dark green for the back
-		preyMeshFemale.vertex(-1, 0, 0); // Left edge
-		preyMeshFemale.color(0.3, 0.8, 0.2); // Olive green, shadow effect
-		preyMeshFemale.vertex(1, 0, 0); // Right edge
-		preyMeshFemale.color(0.3, 0.8, 0.2); // Olive green, shadow effect
-		preyMeshFemale.vertex(0, 0.5, 0); // Top center edge, closing the fan
-		preyMeshFemale.color(0.2, 0.7, 0.1); // Dark green for the back
+		preyMeshFemale.vertex(0, 0, -5);      // Noise
+		preyMeshFemale.color(0.6, 1.0, 0.2);
+		preyMeshFemale.vertex(0, 0.5, 0);     // Top center edge ("back")
+		preyMeshFemale.color(0.2, 0.7, 0.1);
+		preyMeshFemale.vertex(-1, 0, 0);      // Left edge
+		preyMeshFemale.color(0.3, 0.8, 0.2);
+		preyMeshFemale.vertex(1, 0, 0);       // Right edge
+		preyMeshFemale.color(0.3, 0.8, 0.2);
+		preyMeshFemale.vertex(0, 0.5, 0);     // Top center edge, closing the fan
+		preyMeshFemale.color(0.2, 0.7, 0.1);
 
     
     // foodMesh.primitive(Mesh::POINTS);
