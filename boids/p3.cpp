@@ -268,7 +268,7 @@ struct MyApp : App {
         b.findFood(foodTree, 15, foodPosition, mass);
         // target = Vec3d(r(), r(), r());
       } else if (dist < 5.5) {
-        b.bNav.faceToward(target, b.bNav.uu(), 0.1);
+        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.05, 0.15));
         // b.seek(b.target, rnd::uniform(0.05, 0.1), rnd::uniform(0.05, 0.15));
         // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
       } else if (dist < 10.5) {
