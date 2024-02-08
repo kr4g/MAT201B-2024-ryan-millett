@@ -9,7 +9,7 @@
 #include "al/math/al_Functions.hpp"
 
 // #include "../utils/octtree.cpp"
-#include "classes/boid.cpp"
+#include "classes/boid_3.cpp"
 
 const int CUBE_SIZE = 30;
 
