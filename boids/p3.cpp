@@ -265,19 +265,22 @@ struct MyApp : App {
       float dist = (b.bNav.pos() - b.target).mag();
       if (dist < 1.5) {
         b.attentionSpan = 1.0;
+        b.hunger -= 0.05;
         b.findFood(foodTree, 15, foodPosition, mass);
         // target = Vec3d(r(), r(), r());
       } else if (dist < 5.5) {
-        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.08, 0.21));
+        b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.08, 0.167));
         // b.seek(b.target, rnd::uniform(0.05, 0.1), rnd::uniform(0.05, 0.15));
         // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
+        b.attentionSpan -= 0.05;
+        b.hunger += 0.001;
       } else if (dist < 10.5) {
         // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
         std::vector<int> i_boids;
         boidTree.queryRegion(b.target, Vec3f(10, 10, 10), i_boids);
         if (i_boids.size() > 50) {
           if (b.hunger > 0.5) {
-            b.findFood(foodTree, 10, foodPosition, mass);
+            b.findFood(foodTree, 15, foodPosition, mass);
           } else {
             b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.005, 0.1), rnd::uniform(0.15, 0.95));
           }
@@ -389,7 +392,7 @@ struct MyApp : App {
         g.scale(
           // predators can be up to 1.5x larger than prey
           // (b.type == 0) ? 0.03 * rnd::uniform(0.83, 1.0) : 0.09 * rnd::uniform(0.5, 1.0)
-          (i % 11 != 0) ? 0.1 : 0.06
+          (i % 11 != 0) ? 0.09 : 0.05
           // 0.167
         );
         g.draw(
