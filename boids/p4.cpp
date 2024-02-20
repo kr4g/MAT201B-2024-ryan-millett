@@ -8,21 +8,22 @@
 #include "al/graphics/al_Shapes.hpp"
 #include "al/math/al_Functions.hpp"
 
-// #include "../utils/octtree.cpp"
-#include "classes/boid_3.cpp"
+#include "../utils/octtree.cpp"
+// #include "classes/boid_3.cpp"
 
-const int CUBE_SIZE = 25;
+const int CUBE_SIZE = 10;
 
-const int MAX_BOIDS = 7900;
+const int MAX_BOIDS = 300;
+const float MAX_BOID_RADIUS = CUBE_SIZE / 3.0;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
-const int N_PARTICLES = 10500;
+const int N_PARTICLES = 3500;
 
 using namespace al;
 
 double r() { return rnd::uniformS() * CUBE_SIZE; }
-Vec3f randomVec3f(float scale) {
-  return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
+Vec3f randomVec3f(float scale = CUBE_SIZE) {
+  return Vec3f(r(), r(), r());
 }
 struct Axes {
   void draw(Graphics &g) {
@@ -82,15 +83,23 @@ string slurp(string fileName);  // forward declaration
 
 struct MyApp : App {
   
-  Parameter timeStep{"Time Step", "", 5.0, "", 0.08333, 5.0};
-  Parameter pointSize{"/pointSize", "", 1.667, 0.1, 6.0};
-  std::vector<Boid> boids;
-  std::vector<Nav*> navPtrs;
+  Parameter timeStep{"Time Step", "", 2.0, "", 0.0333, 5.0};
+  Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
+  Parameter cohesionThresh{"Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
+  Parameter cohesionForce{"Cohesion Force", "", 0.25, 0.0001, 1.0};
+  Parameter separationThresh{"Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
+  Parameter separationForce{"Separation Force", "", 0.75, 0.0001, 1.0};
+  Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
+  Parameter alignmentForce{"Alignment Force", "", 0.5, 0.0001, 1.0};
+  Parameter bRadius{"Boid Radius", "", 1.25, 0.005, MAX_BOID_RADIUS};
   
+  std::vector<Boid> boids;    
   std::vector<Vec3f> food;
   vector<Vec3f> velocity;
   vector<Vec3f> force;
   vector<float> mass;
+  // Octree foodTree;
+  Octree* boidTree{nullptr};
 
   double time{0};
   double foodRefresh{0};
@@ -106,6 +115,7 @@ struct MyApp : App {
   Mesh preyMeshFemale;
   // Mesh boidMesh;
   Mesh foodMesh;
+  Mesh lineMesh{Mesh::LINES};
 
 
   // Nav point;
@@ -120,9 +130,9 @@ struct MyApp : App {
     setUp();
 
     // place the camera so that we can see the axes
-    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.667, CUBE_SIZE * 1.167);
+    // nav().pos(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE * 1.167);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
-    // nav().pos(0, 0, CUBE_SIZE * 2.5);
+    nav().pos(0, 0, CUBE_SIZE * 1.5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
     // Don't do this:
@@ -180,7 +190,7 @@ struct MyApp : App {
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
     foodMesh.primitive(Mesh::POINTS);
     for (int _ = 0; _ < N_PARTICLES; _++) {
-      foodMesh.vertex(randomVec3f(CUBE_SIZE*2.5));
+      foodMesh.vertex(randomVec3f(CUBE_SIZE));
       foodMesh.color(randomColor());
 
       float m = rnd::uniform(8.0, 0.5);
@@ -195,8 +205,21 @@ struct MyApp : App {
       velocity.push_back(randomVec3f(-0.025));
       force.push_back(randomVec3f(-0.000001));
     }
-  }
-  
+
+
+    // Octree tree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
+    // Octree tree2(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
+    // tree.build(foodMesh.vertices());
+    // tree2.build(boids);
+    // vector<int> nearbyParticles;
+    // vector<int> nearbyBoids;
+    // Vec3f r{5.0};
+    // tree.queryRegion(Vec3f(0.0), r, nearbyParticles);
+    // tree2.queryRegion(Vec3f(0.0), r, nearbyBoids);
+    // // tree.queryRegion(randomVec3f(7.5), Vec3f(15, 15, 15), nearbyParticles);
+    // std::cout << "nearbyParticles: " << nearbyParticles.size() << std::endl;
+    // std::cout << "nearbyBoids: " << nearbyBoids.size() << std::endl;
+  }  
   // void randomizeFoodList() {
   //   // randomize food positions
   //   // and update mesh vertices
@@ -211,20 +234,19 @@ struct MyApp : App {
   // }
 
   Vec3d target = Vec3d(r(), r(), r());
-  void setUp() {
-      navPtrs.clear();
+  void setUp() {         
+      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
       boids.clear();
       for (int i = 0; i < MAX_BOIDS; i++) {        
         Boid b;
         randomize(b.bNav);
-        b.seek(target, rnd::uniform(0.0001, 0.01), rnd::uniform(0.05, 0.75));
-        navPtrs.push_back(&b.bNav); // address of the nav
+        // b.seek(target, rnd::uniform(0.005, 0.09), rnd::uniform(0.05, 0.75));
         boids.push_back(b);
       }
   }
   
   void randomize(Nav& boidNav) {
-    boidNav.pos(randomVec3f(CUBE_SIZE*0.333));
+    boidNav.pos(randomVec3f(CUBE_SIZE));
     boidNav.quat().set(r(), r(), r(), r()).normalize();
   }
   
@@ -236,82 +258,66 @@ struct MyApp : App {
     dt *= timeStep.get();
     time += dt;
     
-    vector<Nav*> &boidPosition(navPtrs);
+    // makeTrees();
+
+    // // vector<Nav*> &boidPosition(navPtrs);
     vector<Vec3f> &foodPosition(foodMesh.vertices());
 
-    Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
-    foodTree.build(foodPosition);
+    // // Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
+    // // foodTree.build(foodPosition);
+    
+    boidTree->build(boids);
 
-    Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.15f);
-    boidTree.build(boidPosition);  
+    // // bool findFood = false;
+    // phase += dt;
+    // float phaseReset = 15 * timeStep.get();
+    // if (phase > phaseReset) {
+    //   phase -= phaseReset;
+    //   // findFood = true;
+    //   target = randomVec3f(CUBE_SIZE*0.833);
+    // } else {
+    //   std::vector<int> i_boids;
+    //   boidTree.queryRegion(target, Vec3f(5, 5, 5), i_boids);
+    //   if (i_boids.size() > MAX_BOIDS * 0.33) {
+    //     target = randomVec3f(CUBE_SIZE);
+    //   }
+    // }
 
-    // bool findFood = false;
-    phase += dt;
-    float phaseReset = 5 * timeStep.get();
-    if (phase > phaseReset) {
-      phase -= phaseReset;
-      // findFood = true;
-      target = randomVec3f(CUBE_SIZE*0.667);
-    } else {
-      std::vector<int> i_boids;
-      boidTree.queryRegion(target, Vec3f(15, 15, 15), i_boids);
-      if (i_boids.size() > 100) {
-        target = randomVec3f(CUBE_SIZE*0.833);
-      }
-    }
-
+    lineMesh.reset();
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
       boidCenterOfMass += b.bNav.pos();
-      float dist = (b.bNav.pos() - b.target).mag();
-      if (dist < 0.5) {     // reached target
-        b.attentionSpan = 1.0;
-        b.hunger -= 0.05;        
-        b.findFood(foodTree, 15, foodPosition, mass); // XXX - replace with a function pointer to a strategy function
-        // target = Vec3d(r(), r(), r());
-      } else if (dist < 3.5) {  // close to target
-        if (rnd::prob(0.5)) {
-          b.bNav.quat().set(r(), r(), r(), r()).normalize();
-          b.attentionSpan += 0.01;
-          b.hunger += 0.01;
-        }
-        std::vector<int> i_boids;
-        boidTree.queryRegion(b.target, Vec3f(3, 3, 3), i_boids);
-        if (i_boids.size() > 50 && rnd::prob(0.35)) {
-          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.05, 0.1), rnd::uniform(0.15, 0.95));
-        } else{
-          b.bNav.faceToward(target, b.bNav.uu(), rnd::uniform(0.1, 0.567));
-        }
-        // b.seek(b.target, rnd::uniform(0.05, 0.1), rnd::uniform(0.05, 0.15));
-        // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.001, 0.08), rnd::uniform(0.15, 0.95));
-        b.attentionSpan -= 0.05;
-        b.hunger += 0.001;
-        if (b.attentionSpan < 0.01 || b.hunger > 0.65) {
-          b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.01, 0.4), rnd::uniform(0.15, 0.95));
-          // b.findFood(foodTree, 15, foodPosition, mass);
-        } else {
-          b.findFood(foodTree, 15, foodPosition, mass);
-        }
-      } else if (dist < 9.5) {
-        // if the targed is too croweded, go elsewhere - XXX: change to a queryRegion, go to nearest low-desire food near the target
-        std::vector<int> i_boids;
-        boidTree.queryRegion(b.target, Vec3f(6, 6, 6), i_boids);
-        if (i_boids.size() > 650) {
-          if (b.hunger > 0.5) {
-            b.findFood(foodTree, 15, foodPosition, mass);
-          } else {
-            b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.05, 0.7), rnd::uniform(0.15, 0.95));
-          }
-          b.findFood(foodTree, 10, foodPosition, mass);          
-          // b.seek(randomVec3f(CUBE_SIZE), rnd::uniform(0.1, 0.7), rnd::uniform(0.15, 0.75));
-        } 
-        b.attentionSpan -= 0.03;
-      } else {        
-        b.seek(target, rnd::uniform(0.0008333, 0.008333), rnd::uniform(0.15, 0.95));
-        b.attentionSpan += 0.1;
+      
+      b.handleBoundary(CUBE_SIZE);
+      
+      vector<int> i_boids;
+      boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
+
+      for (int i : i_boids) {        
+        lineMesh.vertex(b.bNav.pos());
+        lineMesh.vertex(boids[i].bNav.pos());
+        lineMesh.color(1.0, 1.0, 1.0);
       }
-      b.detectSurroundings(boidTree, CUBE_SIZE, boidPosition);
-      b.updatePosition(rnd::uniform(0.667, 1.0), dt);
+
+      b.alignment(boids, i_boids, alignmentThresh.get(), alignmentForce.get());
+      b.cohesion(boids, i_boids, cohesionThresh.get(), cohesionForce.get());
+      b.separation(boids, i_boids, separationThresh.get(), separationForce.get());
+      
+      // b.seek(target, rnd::uniform(0.01, 0.9), rnd::uniform(0.05, 0.75));
+      // float distance = (b.bNav.pos() - target).mag();
+      // if (distance > CUBE_SIZE * 0.75) {
+      //   b.findFood(foodTree, CUBE_SIZE*0.25, foodPosition, mass);
+      // } else {
+      // }
+      // float dist = (b.bNav.pos() - b.target).mag();
+      // if (dist > CUBE_SIZE * 0.5) {
+      //   double proximity = (CUBE_SIZE - dist) / CUBE_SIZE;
+      //   b.seek(target, rnd::uniform(0.006*proximity, 0.1*proximity));
+      // }
+      // b.findFood(foodTree, CUBE_SIZE*0.125, foodPosition, mass);
+      // b.detectSurroundings(boidTree, 2.0, boidPosition);
+
+      b.updatePosition(0.667, dt);
       b.updateParams(timeStep.get());
     }
     boidCenterOfMass /= boids.size();    
@@ -363,16 +369,25 @@ struct MyApp : App {
     for (auto &a : force) a.set(0);
 
 
-    trackingReset += dt;
-    if (trackingReset > 17.0) {      
-      // nav().smooth(std::min(trackingReset / 17.0, 1.0));
-      trackingReset = 0.0;
-    } else {
-      // nav().faceToward(nav().uf(), Vec3d(0, 1, 0));
-      // nav().smooth(0.6);
-      // nav().faceToward(target, Vec3d(0, 1, 0));
-    }
-    nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.3);
+    // trackingReset += dt;
+    // if (trackingReset > 17.0) {      
+    //   // nav().smooth(std::min(trackingReset / 17.0, 1.0));
+    //   trackingReset = 0.0;
+    // } else {
+    //   // nav().faceToward(nav().uf(), Vec3d(0, 1, 0));
+    //   // nav().smooth(0.6);
+    //   // nav().faceToward(target, Vec3d(0, 1, 0));
+    // }
+    // find the octant with the most boids
+    // int maxBoids = 0;
+    // for (auto& v : boidTree->getOctants()) {
+    //   vector<int> i_boids;
+    //   boidTree->queryRegion(v, Vec3f(1.5, 1.5, 1.5), i_boids);
+    //   if (i_boids.size() > maxBoids) {
+    //     maxBoids = i_boids.size();        
+    //   }
+    // }
+    nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
   }
 
   bool onKeyDown(Keyboard const& k) override {
@@ -391,7 +406,7 @@ struct MyApp : App {
     g.meshColor();
     g.pointSize(10);    
     // g.rotate(angle, Vec3d(0, 1, 0));
-    // axes.draw(g);
+    axes.draw(g);
 
     // {
     //   Mesh mesh(Mesh::LINES);
@@ -408,6 +423,9 @@ struct MyApp : App {
     // }
 
     // draw a body for each agent
+    // vector<Nav*> &boidPosition(navPtrs);
+    // Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.1f);
+    // boidTree.build(navPtrs);  
     int i = 0;
     for (auto& b : boids) {
       {
@@ -419,7 +437,7 @@ struct MyApp : App {
         g.scale(
           // predators can be up to 1.5x larger than prey
           // (b.type == 0) ? 0.03 * rnd::uniform(0.83, 1.0) : 0.09 * rnd::uniform(0.5, 1.0)
-          (i % 11 != 0) ? 0.09 : 0.05
+          (i % 11 != 0) ? 0.0125 : 0.005
           // 0.167
         );
         g.draw(
@@ -429,8 +447,22 @@ struct MyApp : App {
         );
         g.popMatrix();  // pop()
       }
+      Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
+      boidTree.build(boids);    
+      vector<int> i_boids;
+      boidTree.queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
+      Mesh m{Mesh::LINES};
+      for (int j : i_boids) {
+        if (i == j) continue;  
+        m.vertex(b.bNav.pos());
+        m.vertex(boids[j].bNav.pos());
+        m.color(1.0, 1.0, 1.0);
+        // g.color(1, 1, 1);
+        g.draw(m);
+      }
       ++i;
     }
+
     
     g.shader(pointShader);
     g.shader().uniform("pointSize", pointSize / 100);
@@ -438,6 +470,7 @@ struct MyApp : App {
     g.blendTrans();
     g.depthTesting(true);
     g.draw(foodMesh);
+    g.draw(lineMesh);
   }
 
   void onInit() override {
@@ -449,6 +482,13 @@ struct MyApp : App {
     // gui.add(boidRespawnRate);
     gui.add(timeStep);
     gui.add(pointSize);
+    gui.add(cohesionThresh);
+    gui.add(cohesionForce);
+    gui.add(separationThresh);
+    gui.add(separationForce);
+    gui.add(alignmentThresh);
+    gui.add(alignmentForce);
+    gui.add(bRadius);
   }
 };
 

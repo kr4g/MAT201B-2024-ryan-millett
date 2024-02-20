@@ -5,6 +5,8 @@
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
 
+#include "MAT201B-2024-ryan-millett/boids/classes/boid_3.cpp"
+
 using namespace al;
 
 #include <fstream>
@@ -24,7 +26,7 @@ struct OctreeNode {
     }
 
     bool isLeaf() const {
-        return particleIndices.empty();
+        return !particleIndices.empty();
     }
 
     bool contains(const Vec3f& point) const {
@@ -40,6 +42,7 @@ struct OctreeNode {
         if (point.z >= center.z) octant |= 1;
         return octant;
     }
+
 };
 
 class Octree {
@@ -63,15 +66,24 @@ public:
         }
     }
     
-    void build(const vector<Nav*>& navs) {
+    void build(const vector<Boid>& boids) {
         clear(root);
-        for (int i = 0; i < navs.size(); ++i) {
-            insertPosition(i, navs[i]->pos());
+        for (int i = 0; i < boids.size(); ++i) {
+            insertPosition(i, boids[i].bNav.pos());
         }
     }
 
     void queryRegion(const Vec3f& center, const Vec3f& halfSize, vector<int>& found) const {
+        found.clear();
         queryRegion(root, center, halfSize, found);
+    }
+
+    vector<Vec3f> getOctants() const {
+        vector<Vec3f> octants;
+        for (int i = 0; i < 8; ++i) {            
+            octants.push_back(root->children[i]->center);
+        }
+        return octants;
     }
 
 private:

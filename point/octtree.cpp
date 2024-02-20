@@ -24,7 +24,7 @@ struct OctreeNode {
     }
 
     bool isLeaf() const {
-        return particleIndices.empty();
+        return !particleIndices.empty();
     }
 
     bool contains(const Vec3f& point) const {
@@ -61,16 +61,23 @@ public:
         for (int i = 0; i < positions.size(); ++i) {
             insertPosition(i, positions[i]);
         }
+        // std::cout << "Root: " << root->center << std::endl;
+        // std::cout << "n children: " << root->particleIndices.size() << std::endl;
+        // std::cout << std::endl;
+        // for (int i = 0; i < 8; ++i) {
+        //     OctreeNode* child = root->children[i];
+        //     while (child) {
+        //         std::cout << "Oct " << i + 1 << ", Center: " << child->center << std::endl;
+        //         std::cout << "n children: " << child->particleIndices.size() << std::endl;
+        //         std::cout << std::endl;
+        //         child = child->children[i];
+        //     }
+        //     // std::cout << "Oct " << i + 1 << ", Center: " << root->children[i]->center << std::endl;
+        //     // std::cout << "n children: " << root->children[i]->particleIndices.size() << std::endl;
+        //     // std::cout << std::endl;
+        // }
     }
     
-    void build(const vector<Nav*>& navs) {
-    clear(root);
-    for (int i = 0; i < navs.size(); ++i) {
-        insertPosition(i, navs[i]->pos());
-    }
-}
-
-
     void queryRegion(const Vec3f& center, const Vec3f& halfSize, vector<int>& found) const {
         queryRegion(root, center, halfSize, found);
     }
@@ -81,10 +88,12 @@ private:
 
         if (node->halfSize.x <= minimumSize) {
             node->particleIndices.push_back(particleIndex);
+            // std::cout << "insert: " << particleIndex << " " << node->particleIndices.size() << std::endl;
             return;
         }
 
         int octant = node->getOctantContainingPoint(position);
+        // std::cout << "octant: " << octant << std::endl;
         if (!node->children[octant]) {
             Vec3f newCenter = node->center;
             newCenter.x += node->halfSize.x * (octant & 4 ? 0.5f : -0.5f);
@@ -108,10 +117,14 @@ private:
     void queryRegion(OctreeNode* node, const Vec3f& center, const Vec3f& halfSize, vector<int>& found) const {
         if (!node) return;
 
-        if (!intersects(node->center, node->halfSize, center, halfSize)) return;
+        if (!intersects(node->center, node->halfSize, center, halfSize)) {
+            return;
+        }
 
         if (node->isLeaf()) {
+            // std::cout << "!!!!!!!!" << std::endl;
             for (int particleIndex : node->particleIndices) {
+                // std::cout << "found: " << particleIndex << std::endl;
                 found.push_back(particleIndex);
             }
         } else {

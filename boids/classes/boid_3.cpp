@@ -2,7 +2,7 @@
 #include "al/math/al_Vec.hpp"
 #include "al/math/al_Functions.hpp"
 
-#include "../../utils/octtree.cpp"
+// #include "../../utils/octtree.cpp"
 
 const float MAX_PREY_LIFESPAN           = 300.0f;
 const float MAX_PREDATOR_LIFESPAN       = 100.0f;
@@ -20,6 +20,7 @@ public:
     Nav bNav;                   // Navigation object
     Vec3d target;                 // Where the boid is going
     bool lifeStatus{true};
+    float frequency{5.0f};
     float attentionSpan{1.0f};
     float hunger{1.0f};
     float fear{0.0f};
@@ -29,8 +30,8 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{5.5f};     // Minimum distance from edge to start turning
-    float turnRateFactor{0.43f};       // Factor to adjust turning rate
+    float minEdgeProximity{0.95f};     // Minimum distance from edge to start turning
+    float turnRateFactor{0.23f};       // Factor to adjust turning rate
 
     // Boid() : {}
     
@@ -52,11 +53,11 @@ public:
         // float closestDist = std::min({xDist, yDist, zDist});
         float turnRate = turnRateFactor * 0.5;// / closestDist;
 
-        if (dist < 0.0) {
-            bNav.quat().set(rnd::uniformS(), rnd::uniformS(), rnd::uniformS(), rnd::uniformS()).normalize();
-            bNav.faceToward(Vec3d(0,0,0), bNav.uu(), turnRate + turnRate*sqrt(proximity));
-        } else if (dist < minEdgeProximity) {            
-            bNav.faceToward(Vec3d(0,0,0), bNav.uu(), turnRate*proximity);
+        if (dist < 0.1) {
+            // bNav.quat().set(rnd::uniformS(), rnd::uniformS(), rnd::uniformS(), rnd::uniformS()).normalize();
+            bNav.faceToward(Vec3d(0,0,0), 0.9);
+        } else if (dist < minEdgeProximity) {
+            bNav.faceToward(Vec3d(0,0,0), turnRateFactor*proximity);
         }
     }
 
@@ -181,97 +182,95 @@ public:
         }
     }
 
-    void alignment(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
+    void alignment(const std::vector<Boid>& boids, const std::vector<int>& i_boids, float threshold = 4.0, double force = 0.5) {
         Vec3f averageHeading(0, 0, 0);
+        Vec3f averageUp(0, 0, 0);
         int alignCount = 0;
-        for (int i : i_navs) {
-            float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 11.0) { 
-                averageHeading += navs[i]->uf();
+        for (int i : i_boids) {
+            float dist = (bNav.pos() - boids[i].bNav.pos()).mag();
+            if (dist < threshold) { 
+                averageHeading += boids[i].bNav.uf();
+                averageUp += boids[i].bNav.uu();
                 alignCount++;
             }
         }
-        if (alignCount > 0) {
+        if (alignCount > 20) {
             averageHeading /= alignCount;
-            float turnRate = turnRateFactor * (bNav.pos() - bNav.pos() + averageHeading).mag() / 30.0;
-            bNav.faceToward(bNav.pos() + averageHeading.normalized(), bNav.uu(), turnRate);
+            averageUp /= alignCount;
+            // float turnRate = turnRateFactor * (bNav.pos() - bNav.pos() + averageHeading).mag() / 30.0;
+            bNav.faceToward(bNav.pos() + averageHeading.normalized(), averageUp.normalized(), turnRateFactor*force);
         }
     }
 
-    void separation(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
-        Vec3f separationForce(0, 0, 0);
-        int closeBoids = 0;
-        for (int i : i_navs) {
-            float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist < 6.0) {
-                Vec3f away = (bNav.pos() - navs[i]->pos()).normalize() / dist;
-                separationForce += away;
-                closeBoids++;
-            }
-        }
-        if (closeBoids > 0) {            
-            separationForce /= closeBoids;
-            bNav.faceToward(bNav.pos() + separationForce, bNav.uu(), 0.75);
-        }
-    }
-
-    void cohesion(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
+    void cohesion(const std::vector<Boid>& boids, const std::vector<int>& i_boids, float threshold = 4.3, double force = 0.5) {
         Vec3f centerOfMass(0, 0, 0);
         int cohesionCount = 0;
-        for (int i : i_navs) {
-            float dist = (bNav.pos() - navs[i]->pos()).mag();
-            if (dist > 10.0) {
-                centerOfMass += navs[i]->pos();
+        for (int i : i_boids) {
+            float dist = (bNav.pos() - boids[i].bNav.pos()).mag();
+            if (dist < threshold) {
+                centerOfMass += boids[i].bNav.pos();
                 cohesionCount++;
             }
         }
         if (cohesionCount > 0) {
+            // float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 10.0, 0.75);
+            // if (cohesionCount > 100) { // if general area is too sparse, increase urge to move towards center
+            //     turnRate = sqrt(turnRate);                             
+            // }
+            float turnRate = cohesionCount / i_boids.size();
             centerOfMass /= cohesionCount;
-            float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 30.0, 0.75);
-            bNav.faceToward(centerOfMass, Vec3f(0, 1, 0), turnRate);
+            bNav.faceToward(centerOfMass, turnRate*turnRateFactor*force);
         }
     }
 
-    void detectSurroundings(const Octree& tree, float size, const std::vector<Nav*>& navs) {
-        vector<int> i_navs;
-        tree.queryRegion(bNav.pos(), Vec3f(13, 13, 13), i_navs);
-
-        heading(navs, i_navs);
-        detectCollisions(navs, i_navs);
-        alignment(navs, i_navs);
-        cohesion(navs, i_navs);
-        separation(navs, i_navs);
-
-        handleBoundary(size*1.333);
-        originAvoidance(9.0, 15.0);
-    }
-
-    void findFood(const Octree& tree, float size, const std::vector<Vec3f>& food, const std::vector<float>& mass) {
-        hunger = (hunger > 1.0) ? hunger = 1.0 : hunger; 
-        if ((target - bNav.pos()).magSqr() < 0.1) {
-            hunger -= 0.0001; // make proportional to mass of food
-            target = Vec3d(rnd::uniformS(), rnd::uniformS(), rnd::uniformS());
+    void separation(const std::vector<Boid>& boids, const std::vector<int>& i_boids, float threshold = 0.75, float force = 0.5) {
+        Vec3f separationForce(0, 0, 0);
+        int closeBoids = 0;
+        for (int i : i_boids) {
+            float dist = (bNav.pos() - boids[i].bNav.pos()).mag();
+            Vec3f away = (bNav.pos() - boids[i].bNav.pos()).normalize() / dist;
+            if (dist < threshold) {
+                separationForce += away;
+                closeBoids++;
+            }            
         }
-        vector<int> i_food;
-        tree.queryRegion(bNav.pos(), Vec3f(size, size, size), i_food);
-        float si = i_food.size();
-        if (si > 0) {
-            int biggestFood = i_food[0];
-            for (int i : i_food) {
-                // float foodMass = mass[i];
-                if (mass[i] > mass[biggestFood]) {
-                    biggestFood = i;
-                }
-                hunger += i / si; // make proportional to mass of food
-            }
-            seek(food[biggestFood], 0.31);
-        }        
+        if (closeBoids > 0) {
+            // float turnRate = std::min((bNav.pos() - separationForce).mag() / 5.0, 0.75);
+            // if (closeBoids > 100) { // if general area is too crowded, increase separation force
+            //     turnRate = sqrt(turnRate);
+            // }
+            float turnRate = closeBoids / i_boids.size();
+            separationForce /= closeBoids;
+            bNav.faceToward(separationForce, turnRate*sqrt(sqrt(turnRateFactor)*force));
+        }
     }
 
-    void seek(Vec3d a, double amt, float smooth = 0.1) { 
+    // void findFood(const Octree& tree, float size, const std::vector<Vec3f>& food, const std::vector<float>& mass) {
+    //     // hunger = (hunger > 1.0) ? hunger = 1.0 : hunger; 
+    //     if ((target - bNav.pos()).magSqr() < 0.5) {
+    //         // hunger -= 0.0001; // make proportional to mass of food
+    //         target.set(Vec3d(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()));
+    //     }
+    //     vector<int> i_food;
+    //     tree.queryRegion(bNav.pos(), Vec3f(size, size, size), i_food);
+    //     float si = i_food.size();
+    //     if (si > 0) {
+    //         int biggestFood = i_food[0];
+    //         for (int i : i_food) {
+    //             // float foodMass = mass[i];
+    //             if (mass[i] > mass[biggestFood]) {
+    //                 biggestFood = i;
+    //             }
+    //             hunger += i / si; // make proportional to mass of food
+    //         }
+    //         seek(food[biggestFood], 0.31);
+    //     }        
+    // }
+
+    void seek(const Vec3d& a, double amt, float smooth = 0.1) { 
         target.set(a);
         bNav.smooth(smooth);
-        bNav.faceToward(target, Vec3d(0, 1, 0), amt);
+        bNav.faceToward(target, bNav.uu(), amt);
     }
 
     void updatePosition(double v, double dt) {
@@ -284,6 +283,15 @@ public:
             lifeStatus = false;
         }
         age += ageRate*(dts/5.0) + (ageRate * fear);  // Fear increases rate of aging
+        if (hunger < 0.0) {
+              hunger = 0.0;
+        }
+
+        if (attentionSpan < 0.0) {
+            attentionSpan = 0.0;
+        } else if (attentionSpan > 1.0) {
+            attentionSpan = 1.0;
+        }
         // float deathProximity = age / lifespan;        
         // if (fear > 1.0) {
         //     lifeStatus = rnd::uniform() > deathProximity;
