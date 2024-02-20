@@ -13,7 +13,7 @@
 
 const int CUBE_SIZE = 10;
 
-const int MAX_BOIDS = 350;
+const int MAX_BOIDS = 300;
 const float MAX_BOID_RADIUS = CUBE_SIZE / 3.0;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
@@ -69,13 +69,13 @@ struct MyApp : App {
   
   Parameter timeStep{"Time Step", "", 2.0, "", 0.0333, 5.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
+  Parameter bRadius{"Boid Vision Radius", "", 1.25, 0.005, MAX_BOID_RADIUS};
   Parameter cohesionThresh{"Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
   Parameter cohesionForce{"Cohesion Force", "", 0.125, 0.0001, 1.0};
   Parameter separationThresh{"Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
   Parameter separationForce{"Separation Force", "", 0.75, 0.0001, 1.0};
   Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
   Parameter alignmentForce{"Alignment Force", "", 0.25, 0.0001, 1.0};
-  Parameter bRadius{"Boid Radius", "", 1.25, 0.005, MAX_BOID_RADIUS};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
