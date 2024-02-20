@@ -25,6 +25,7 @@ double r() { return rnd::uniformS() * CUBE_SIZE; }
 Vec3f randomVec3f(float scale = CUBE_SIZE) {
   return Vec3f(r(), r(), r());
 }
+
 struct Axes {
   void draw(Graphics &g) {
     Mesh mesh(Mesh::LINES);
@@ -235,7 +236,7 @@ struct MyApp : App {
 
   Vec3d target = Vec3d(r(), r(), r());
   void setUp() {         
-      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
+      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
       boids.clear();
       for (int i = 0; i < MAX_BOIDS; i++) {        
         Boid b;
@@ -447,7 +448,7 @@ struct MyApp : App {
         );
         g.popMatrix();  // pop()
       }
-      Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
+      Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
       boidTree.build(boids);    
       vector<int> i_boids;
       boidTree.queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
