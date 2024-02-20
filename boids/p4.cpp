@@ -54,7 +54,6 @@ struct Axes {
   }
 };
 
-// Assuming Vec3f is the vector class used for positions and that you have a list or array of object positions
 Vec3f calculateCenterOfMass(const std::vector<Vec3f>& positions) {
     Vec3f center(0, 0, 0);
     for (auto& pos : positions) {
@@ -62,22 +61,6 @@ Vec3f calculateCenterOfMass(const std::vector<Vec3f>& positions) {
     }
     center /= positions.size();
     return center;
-}
-
-void updateCameraPosition(al::Nav& nav, const Vec3f& centerOfMass, float distance) {
-    // This example assumes you have an al::Nav object for the camera (`nav`)
-    // and a desired distance from the center of mass to maintain.
-
-    // Calculate a simple orbit around the center of mass
-    static float angle = 0.0f;  // Static to keep increasing each frame
-    angle += 0.01;  // Adjust rotation speed as needed
-
-    // Calculate new camera position
-    Vec3f newPosition = centerOfMass + Vec3f(cos(angle) * distance, 0, sin(angle) * distance);
-
-    // Update camera position and orientation
-    nav.pos(newPosition);
-    nav.faceToward(centerOfMass);  // Make the camera face towards the center of mass
 }
 
 string slurp(string fileName);  // forward declaration
