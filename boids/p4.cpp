@@ -99,7 +99,7 @@ struct MyApp : App {
   Mesh preyMeshFemale;
   // Mesh boidMesh;
   Mesh foodMesh;
-  Mesh lineMesh{Mesh::LINES};
+  // Mesh lineMesh{Mesh::LINES};
 
 
   // Nav point;
@@ -267,7 +267,7 @@ struct MyApp : App {
     //   }
     // }
 
-    lineMesh.reset();
+    // lineMesh.reset();
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
       boidCenterOfMass += b.bNav.pos();
@@ -277,11 +277,11 @@ struct MyApp : App {
       vector<int> i_boids;
       boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
 
-      for (int i : i_boids) {        
-        lineMesh.vertex(b.bNav.pos());
-        lineMesh.vertex(boids[i].bNav.pos());
-        lineMesh.color(1.0, 1.0, 1.0);
-      }
+      // for (int i : i_boids) {        
+      //   lineMesh.vertex(b.bNav.pos());
+      //   lineMesh.vertex(boids[i].bNav.pos());
+      //   lineMesh.color(1.0, 1.0, 1.0);
+      // }
 
       b.alignment(boids, i_boids, alignmentThresh.get(), alignmentForce.get());
       b.cohesion(boids, i_boids, cohesionThresh.get(), cohesionForce.get());
@@ -414,22 +414,16 @@ struct MyApp : App {
     for (auto& b : boids) {
       {
         Nav& a(b.bNav);
-        // randomize(a);
-        g.pushMatrix();  // push()
+        g.pushMatrix();
         g.translate(a.pos());
-        g.rotate(a.quat());  // rotate using the quat
+        g.rotate(a.quat());
         g.scale(
-          // predators can be up to 1.5x larger than prey
-          // (b.type == 0) ? 0.03 * rnd::uniform(0.83, 1.0) : 0.09 * rnd::uniform(0.5, 1.0)
           (i % 11 != 0) ? 0.0125 : 0.005
-          // 0.167
         );
         g.draw(
-          // prey are blue/green, predators are red/orange
           (i % 11 != 0) ? preyMeshMale : preyMeshFemale
-          // preyMeshMale
         );
-        g.popMatrix();  // pop()
+        g.popMatrix();
       }
       Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
       boidTree.build(boids);    
