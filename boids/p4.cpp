@@ -138,7 +138,7 @@ struct MyApp : App {
     predMesh.vertex(0, 1, 0);
     predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
 
-    // Male Prey Body: Enhanced Blue Spectrum with Variation and Specific Highlights
+    // Male Prey Body
     preyMeshMale.primitive(Mesh::TRIANGLE_FAN);
 		preyMeshMale.vertex(0, 0, -3);        // Noise
 		preyMeshMale.color(0, 0.5, 1.0);
@@ -151,7 +151,7 @@ struct MyApp : App {
 		preyMeshMale.vertex(0, 1, 0);         // Top center edge, closing the fan
 		preyMeshMale.color(0.45, 0.17, 0.28);
 
-    // Female Prey Body: Warm Tones with Enhanced Variation and Specific Highlights
+    // Female Prey Body
     preyMeshFemale.primitive(Mesh::TRIANGLE_FAN);
 		preyMeshFemale.vertex(0, 0, -5);      // Noise
 		preyMeshFemale.color(0.6, 1.0, 0.2);
