@@ -18,7 +18,7 @@ using namespace al;
 #include <vector>
 using namespace std;
 
-float n_particles = 10000;//1670;
+float n_particles = 20000;
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
@@ -32,7 +32,6 @@ struct AlloApp : App {
   Parameter sphereRadius{"sphereRadius", "", 15.0, 0.5, 30.0};
   Parameter k{"k", "", 0.0, 0.0, 5.0};
   Parameter q{"q", "", 0.0, 0.0, 1.0};
-  //
 
   ShaderProgram pointShader;
 
@@ -70,7 +69,7 @@ struct AlloApp : App {
     // does 1000 work on your system? how many can you make before you get a low
     // frame rate? do you need to use <1000?
     for (int _ = 0; _ < n_particles; _++) {
-      mesh.vertex(randomVec3f(20));
+      mesh.vertex(randomVec3f(15));
       mesh.color(randomColor());
 
       // float m = rnd::uniform(3.0, 0.5);
@@ -88,12 +87,12 @@ struct AlloApp : App {
 
     // vector<Vec3f> &position(mesh.vertices());
     // vector<Vec3f> &position(mesh.vertices());
-    Octree tree(Vec3f(0, 0, 0), Vec3f(15, 15, 15), 10.0f);
-    tree.build(mesh.vertices());
-    vector<int> nearbyParticles;
-    tree.queryRegion(Vec3f(0.0), Vec3f(25, 25, 25), nearbyParticles);
+    // Octree tree(Vec3f(0, 0, 0), Vec3f(15, 15, 15), 0.25f);
+    // tree.build(mesh.vertices());
+    // vector<int> nearbyParticles;
+    // tree.queryRegion(Vec3f(0.0), Vec3f(25, 25, 25), nearbyParticles);
     // tree.queryRegion(randomVec3f(7.5), Vec3f(15, 15, 15), nearbyParticles);
-    std::cout << "nearbyParticles: " << nearbyParticles.size() << std::endl;
+    // std::cout << "nearbyParticles: " << nearbyParticles.size() << std::endl;
 
     nav().pos(0, 0, 40);
   }
@@ -104,8 +103,8 @@ struct AlloApp : App {
 
     vector<Vec3f> &position(mesh.vertices());
 
-    // Octree tree(Vec3f(0, 0, 0), Vec3f(15, 15, 15), 0.1f);
-    // tree.build(position);
+    Octree tree(Vec3f(0, 0, 0), Vec3f(15, 15, 15), 0.125f);
+    tree.build(position);
 
     for (int i = 0; i < position.size(); i++) {
       float currentDistance = position[i].mag();
@@ -119,26 +118,26 @@ struct AlloApp : App {
       velocity[i] += force[i] / mass[i] * timeStep;
       position[i] += velocity[i] * timeStep;
 
-      // vector<int> nearbyParticles;
-      // tree.queryRegion(position[i], Vec3f(15, 15, 15), nearbyParticles);
-      // // std::cout << "i: " << i << " " << nearbyParticles.size() << std::endl;
+      vector<int> nearbyParticles;
+      tree.queryRegion(position[i], Vec3f(0.125), nearbyParticles);
+      // std::cout << "i: " << i << " " << nearbyParticles.size() << std::endl;
 
-      // // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
-      // float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
-      // HSV q1 = mesh.colors()[i];
-      // for (int j : nearbyParticles) {
-      //   std::cout << "i: " << i << " j: " << j << std::endl;
-      //   if ( i == j ) continue;
-      //   HSV q2 = mesh.colors()[j];
-      //   float charge = q1.h * q2.h;
-      //   float u = 100.0 * abs(q1.h - q2.h);
-      //   Vec3f r = position[j] - position[i];
-      //   // if (r < 0.333) { charge *= 1.667; }
-      //   Vec3f F = (Vec3f(r).normalize() * charge * q) / (r.magSqr() + 0.001);
-      //   F = F * ke * u;
-      //   force[i] -= F;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
-      //   force[j] += F;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
-      // }
+      // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
+      float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
+      HSV q1 = mesh.colors()[i];
+      for (int j : nearbyParticles) {
+        // std::cout << "i: " << i << " j: " << j << std::endl;
+        if ( i == j ) continue;
+        HSV q2 = mesh.colors()[j];
+        float charge = q1.h * q2.h;
+        float u = 100.0 * abs(q1.h - q2.h);
+        Vec3f r = position[j] - position[i];
+        // if (r < 0.333) { charge *= 1.667; }
+        Vec3f F = (Vec3f(r).normalize() * charge * q) / (r.magSqr() + 0.001);
+        F = F * ke * u;
+        force[i] -= F;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+        force[j] += F;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
+      }
     }
 
     // clear all accelerations (IMPORTANT!!)

@@ -2,8 +2,6 @@
 #include "al/math/al_Vec.hpp"
 #include "al/math/al_Functions.hpp"
 
-// #include "../../utils/octtree.cpp"
-
 const float MAX_PREY_LIFESPAN           = 300.0f;
 const float MAX_PREDATOR_LIFESPAN       = 100.0f;
 
@@ -17,7 +15,7 @@ using namespace al;
 
 class Boid {
 public:    
-    Nav bNav;                   // Navigation object
+    Nav bNav;                     // Navigation object
     Vec3d target;                 // Where the boid is going
     bool lifeStatus{true};
     float frequency{5.0f};
@@ -30,35 +28,28 @@ public:
     float ageRate{0.001f};
     float lifespan;
 
-    float minEdgeProximity{0.95f};     // Minimum distance from edge to start turning
-    float turnRateFactor{0.23f};       // Factor to adjust turning rate
+    float minEdgeProximity{1.5f}; // Minimum distance from edge to start turning
+    float turnRateFactor{0.2f};  // Factor to adjust turning rate
 
     // Boid() : {}
     
     ~Boid() {}
 
     void handleBoundary(float size) {
-        // take into account not just position, but unit forward vector
-        Vec3d bUf = bNav.uf();
+        // Vec3d bUf = bNav.uf();
+        float dist = bNav.pos().mag();
+        // float proximity = (size - dist) / size;
+        // float turnRate = turnRateFactor;
 
-        // distance to the edge of the world
-        float dist = size - (bNav.pos() + bUf).mag();
-        // if (dist < 0.0) 
-        float proximity = (size - dist) / size;
-
-        // float xDist = std::min(std::abs(bNav.pos().x - size), std::abs(bNav.pos().x + size));
-        // float yDist = std::min(std::abs(bNav.pos().y - size), std::abs(bNav.pos().y + size));
-        // float zDist = std::min(std::abs(bNav.pos().z - size), std::abs(bNav.pos().z + size));
-
-        // float closestDist = std::min({xDist, yDist, zDist});
-        float turnRate = turnRateFactor * 0.5;// / closestDist;
-
-        if (dist < 0.1) {
-            // bNav.quat().set(rnd::uniformS(), rnd::uniformS(), rnd::uniformS(), rnd::uniformS()).normalize();
-            bNav.faceToward(Vec3d(0,0,0), 0.9);
-        } else if (dist < minEdgeProximity) {
-            bNav.faceToward(Vec3d(0,0,0), turnRateFactor*proximity);
+        if (dist > size) {
+            bNav.faceToward(Vec3d(0,0,0), 1.0);
         }
+
+        // if (dist < 0.1) {
+        //     bNav.faceToward(Vec3d(0,0,0), 0.9);
+        // } else if (dist < minEdgeProximity) {
+        //     bNav.faceToward(Vec3d(0,0,0), turnRateFactor*proximity);
+        // }
     }
 
     void originAvoidance(float avoidanceRadius) {
@@ -102,14 +93,8 @@ public:
                     bNav.faceToward(bNav.pos() + biasedForward, bNav.uu(), turnRate);
                 }                
             }
-            // Vec3d biasedForward = forward + awayFromOrigin * std::abs(theta);
-            // biasedForward.normalize(); // Ensure the direction is normalized
-
-            // // Steer the boid towards this new direction
-            // bNav.faceToward(pos + biasedForward, bNav.uu(), turnRate);
         }
     }
-
 
     void heading(const std::vector<Nav*>& navs, const std::vector<int>& i_navs) {
         Vec3f averageOncomingHeading(0, 0, 0);
@@ -182,6 +167,40 @@ public:
         }
     }
 
+    void boidForces(const std::vector<Boid>& boids, const std::vector<int>& i_boids, float headingForce = 0.5, float cohesionForce = 0.5, float separationForce = 0.5) {
+        Vec3f averageHeading(0, 0, 0);
+        Vec3f averageUp(0, 0, 0);
+        Vec3f centerOfMass(0, 0, 0);
+        Vec3f separation(0, 0, 0);
+
+        for (int i : i_boids) {
+            Vec3f toNeighbor = boids[i].bNav.pos() - bNav.pos();
+            float dist = toNeighbor.mag();
+            // alignment
+            averageHeading += boids[i].bNav.uf();
+            averageUp += boids[i].bNav.uu();
+            // cohesion
+            centerOfMass += boids[i].bNav.pos();
+            // separation
+            Vec3f away = Vec3f(toNeighbor).normalize() / (dist*dist);
+            separation -= away;
+        }
+        averageHeading /= i_boids.size();
+        averageUp /= i_boids.size();
+        centerOfMass /= i_boids.size();
+        // separation /= i_boids.size();
+
+        // Vec3f direction(0, 0, 0);
+
+        // direction += averageHeading;
+        // direction += centerOfMass;
+        // direction += separationForce;
+        
+        bNav.faceToward(bNav.pos() + averageHeading.normalized(), averageUp.normalized(), turnRateFactor*headingForce);
+        bNav.faceToward(centerOfMass, turnRateFactor*cohesionForce);
+        bNav.faceToward(separation, turnRateFactor*separationForce);
+    }
+
     void alignment(const std::vector<Boid>& boids, const std::vector<int>& i_boids, float threshold = 4.0, double force = 0.5) {
         Vec3f averageHeading(0, 0, 0);
         Vec3f averageUp(0, 0, 0);
@@ -194,10 +213,9 @@ public:
                 alignCount++;
             }
         }
-        if (alignCount > 20) {
+        if (alignCount > 0) {
             averageHeading /= alignCount;
             averageUp /= alignCount;
-            // float turnRate = turnRateFactor * (bNav.pos() - bNav.pos() + averageHeading).mag() / 30.0;
             bNav.faceToward(bNav.pos() + averageHeading.normalized(), averageUp.normalized(), turnRateFactor*force);
         }
     }
@@ -213,10 +231,6 @@ public:
             }
         }
         if (cohesionCount > 0) {
-            // float turnRate = std::min((bNav.pos() - centerOfMass).mag() / 10.0, 0.75);
-            // if (cohesionCount > 100) { // if general area is too sparse, increase urge to move towards center
-            //     turnRate = sqrt(turnRate);                             
-            // }
             float turnRate = cohesionCount / i_boids.size();
             centerOfMass /= cohesionCount;
             bNav.faceToward(centerOfMass, turnRate*turnRateFactor*force);
@@ -235,10 +249,6 @@ public:
             }            
         }
         if (closeBoids > 0) {
-            // float turnRate = std::min((bNav.pos() - separationForce).mag() / 5.0, 0.75);
-            // if (closeBoids > 100) { // if general area is too crowded, increase separation force
-            //     turnRate = sqrt(turnRate);
-            // }
             float turnRate = closeBoids / i_boids.size();
             separationForce /= closeBoids;
             bNav.faceToward(separationForce, turnRate*sqrt(sqrt(turnRateFactor)*force));
@@ -273,8 +283,8 @@ public:
         bNav.faceToward(target, bNav.uu(), amt);
     }
 
-    void updatePosition(double v, double dt) {
-        bNav.moveF(v);
+    void updatePosition(double dt) {
+        bNav.moveF(0.67);
         bNav.step(dt);        
     }
 

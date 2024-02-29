@@ -1,6 +1,6 @@
 // Ryan Millett
 // MAT201B-2024
-//
+
 #include "al/app/al_App.hpp"
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
@@ -13,11 +13,11 @@
 
 const int CUBE_SIZE = 10;
 
-const int MAX_BOIDS = 300;
-const float MAX_BOID_RADIUS = CUBE_SIZE / 3.0;
+const int MAX_BOIDS = 4000;
+const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
 // const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
-const int N_PARTICLES = 2500;
+const int N_PARTICLES = 1500;
 
 using namespace al;
 
@@ -67,15 +67,15 @@ string slurp(string fileName);  // forward declaration
 
 struct MyApp : App {
   
-  Parameter timeStep{"Time Step", "", 2.0, "", 0.0333, 5.0};
+  Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 5.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"Boid Vision Radius", "", 1.25, 0.005, MAX_BOID_RADIUS};
-  Parameter cohesionThresh{"Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
-  Parameter cohesionForce{"Cohesion Force", "", 0.125, 0.0001, 1.0};
-  Parameter separationThresh{"Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
-  Parameter separationForce{"Separation Force", "", 0.75, 0.0001, 1.0};
+  Parameter bRadius{"/Boid Vision Radius", "", 0.25, 0.125, MAX_BOID_RADIUS};
+  Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
+  Parameter cohesionForce{"/Cohesion Force", "", 0.001, 0.0001, 1.0};
+  Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
+  Parameter separationForce{"Separation Force", "", 0.001, 0.0001, 1.0};
   Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
-  Parameter alignmentForce{"Alignment Force", "", 0.25, 0.0001, 1.0};
+  Parameter alignmentForce{"Alignment Force", "", 0.001, 0.0001, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
@@ -174,19 +174,16 @@ struct MyApp : App {
       // float m = 3 + rnd::normal() / 2;
       if (m < 0.5) m = 0.5;
       mass.push_back(m);
-
       // using a simplified volume/size relationship
       foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
-
-      // separate state arrays
-      velocity.push_back(randomVec3f(-0.025));
-      force.push_back(randomVec3f(-0.000001));
+      // velocity.push_back(randomVec3f(-0.025));
+      // force.push_back(randomVec3f(-0.000001));
     }
   }  
   
   Vec3d target = Vec3d(r(), r(), r());
   void setUp() {         
-      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
+      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.05f);
       boids.clear();
       for (int i = 0; i < MAX_BOIDS; i++) {        
         Boid b;
@@ -197,7 +194,7 @@ struct MyApp : App {
   }
   
   void randomize(Nav& boidNav) {
-    boidNav.pos(randomVec3f(CUBE_SIZE));
+    boidNav.pos(randomVec3f(CUBE_SIZE*0.75));
     boidNav.quat().set(r(), r(), r(), r()).normalize();
   }
   
@@ -208,116 +205,24 @@ struct MyApp : App {
     if (freeze) return;
     dt *= timeStep.get();
     time += dt;
-    
-    // makeTrees();
-
     // // vector<Nav*> &boidPosition(navPtrs);
-    vector<Vec3f> &foodPosition(foodMesh.vertices());
-
-    // // Octree foodTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.05f);
-    // // foodTree.build(foodPosition);
-    
+    // vector<Vec3f> &foodPosition(foodMesh.vertices());
     boidTree->build(boids);
-
-    // // bool findFood = false;
-    // phase += dt;
-    // float phaseReset = 15 * timeStep.get();
-    // if (phase > phaseReset) {
-    //   phase -= phaseReset;
-    //   // findFood = true;
-    //   target = randomVec3f(CUBE_SIZE*0.833);
-    // } else {
-    //   std::vector<int> i_boids;
-    //   boidTree.queryRegion(target, Vec3f(5, 5, 5), i_boids);
-    //   if (i_boids.size() > MAX_BOIDS * 0.33) {
-    //     target = randomVec3f(CUBE_SIZE);
-    //   }
-    // }
-
     // lineMesh.reset();
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
       boidCenterOfMass += b.bNav.pos();
       
       b.handleBoundary(CUBE_SIZE);
-      
       vector<int> i_boids;
       boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
-
-      // for (int i : i_boids) {        
-      //   lineMesh.vertex(b.bNav.pos());
-      //   lineMesh.vertex(boids[i].bNav.pos());
-      //   lineMesh.color(1.0, 1.0, 1.0);
-      // }
-
-      b.alignment(boids, i_boids, alignmentThresh.get(), alignmentForce.get());
-      b.cohesion(boids, i_boids, cohesionThresh.get(), cohesionForce.get());
-      b.separation(boids, i_boids, separationThresh.get(), separationForce.get());
-      
-      // b.seek(target, rnd::uniform(0.01, 0.9), rnd::uniform(0.05, 0.75));
-      // float distance = (b.bNav.pos() - target).mag();
-      // if (distance > CUBE_SIZE * 0.75) {
-      //   b.findFood(foodTree, CUBE_SIZE*0.25, foodPosition, mass);
-      // } else {
-      // }
-      // float dist = (b.bNav.pos() - b.target).mag();
-      // if (dist > CUBE_SIZE * 0.5) {
-      //   double proximity = (CUBE_SIZE - dist) / CUBE_SIZE;
-      //   b.seek(target, rnd::uniform(0.006*proximity, 0.1*proximity));
-      // }
-      // b.findFood(foodTree, CUBE_SIZE*0.125, foodPosition, mass);
-      // b.detectSurroundings(boidTree, 2.0, boidPosition);
-
-      b.updatePosition(0.667, dt);
-      b.updateParams(timeStep.get());
+      b.boidForces(boids, i_boids, alignmentForce.get(), cohesionForce.get(), separationForce.get());
+      b.updatePosition(dt);
     }
-    boidCenterOfMass /= boids.size();    
-
-    for (int i = 0; i < foodPosition.size(); i++) {
-      float currentDistance = foodPosition[i].mag();
-      float displacement = currentDistance - CUBE_SIZE;
-      Vec3f springForce = (displacement < CUBE_SIZE) ? 0.0 : Vec3f(-foodPosition[i]).normalize() * (0.001 * displacement);
-      force[i] += springForce * 0.25 + springForce * randomVec3f(0.05) * 0.1; // spring force
-      if (displacement > CUBE_SIZE*0.43) {
-        force[i] += -velocity[i] * 4.97;     // drag force
-      }
-      force[i] += -velocity[i] * 0.7;     // drag force
-
-      // if (currentDistance < CUBE_SIZE * 0.1) {
-      //   force[i] += Vec3f(-foodPosition[i]).normalize() * 0.000001;
-      //   force[i] += -velocity[i] * 0.1;     // drag force
-      // }
-
-      // force toward the target
-      force[i] += Vec3f(target - foodPosition[i]).normalize() * 0.00012;
-
-
-      // "semi-implicit" Euler integration
-      velocity[i] += force[i] / mass[i] * timeStep;
-      foodPosition[i] += velocity[i] * timeStep;
-
-      // vector<int> nearbyParticles;
-      // foodTree.queryRegion(foodPosition[i], Vec3f(10, 10, 10), nearbyParticles); 
-
-      // // Repulsion :: [Coulombs law](https://en.wikipedia.org/wiki/Coulomb%27s_law)* :: $F = k_e \frac{q_1 q_2}{r^2}$
-      // float ke = 8.987551787e9; // Coulomb's constant in N·m²/C²
-      // HSV q1 = foodMesh.colors()[i];
-      // for (int j : nearbyParticles) {
-      //   if ( i == j ) continue;
-      //   HSV q2 = foodMesh.colors()[j];
-      //   float charge = q1.h * q2.h;
-      //   float u = 0.0001 * abs(q1.h - q2.h);
-      //   Vec3f r = foodPosition[j] - foodPosition[i];
-      //   // if (r < 0.333) { charge *= 1.667; }
-      //   Vec3f F = (Vec3f(r).normalize() * charge) / (r.magSqr() + 0.0000001);
-      //   F = F * ke * u * 0.0001;
-      //   force[i] -= F * 0.0001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
-      //   force[j] += F * 0.0001;// + rnd::uniformS() * (1.0 - u) * q * 0.001;
-      // }
-    }
+    boidCenterOfMass /= boids.size();
 
     // clear all accelerations (IMPORTANT!!)
-    for (auto &a : force) a.set(0);
+    // for (auto &a : force) a.set(0);
 
     nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
   }
@@ -338,7 +243,7 @@ struct MyApp : App {
     g.meshColor();
     g.pointSize(10);    
     // g.rotate(angle, Vec3d(0, 1, 0));
-    axes.draw(g);
+    // axes.draw(g);
 
     int i = 0;
     for (auto& b : boids) {
@@ -348,25 +253,26 @@ struct MyApp : App {
         g.translate(a.pos());
         g.rotate(a.quat());
         g.scale(
-          (i % 11 != 0) ? 0.0125 : 0.005
+          // (i % 11 != 0) ? 0.025 : 0.01
+          (i % 11 != 0) ? 0.01 : 0.005
         );
         g.draw(
           (i % 11 != 0) ? preyMeshMale : preyMeshFemale
         );
         g.popMatrix();
       }
-      Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 0.5f);
-      boidTree.build(boids);    
-      vector<int> i_boids;
-      boidTree.queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
-      Mesh m{Mesh::LINES};
-      for (int j : i_boids) {
-        if (i == j) continue;  
-        m.vertex(b.bNav.pos());
-        m.vertex(boids[j].bNav.pos());
-        m.color(1.0, 1.0, 1.0);
-        g.draw(m);
-      }
+      // Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.125f);
+      // boidTree.build(boids);    
+      // vector<int> i_boids;
+      // boidTree.queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
+      // Mesh m{Mesh::LINES};
+      // for (int j : i_boids) {
+      //   if (i == j) continue;  
+      //   m.vertex(b.bNav.pos());
+      //   m.vertex(boids[j].bNav.pos());
+      //   m.color(1.0, 1.0, 1.0);
+      //   g.draw(m);
+      // }
       ++i;
     }
 
