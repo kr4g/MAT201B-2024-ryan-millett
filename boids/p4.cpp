@@ -2,13 +2,17 @@
 // MAT201B-2024
 
 #include "al/app/al_App.hpp"
+#include "al/app/al_DistributedApp.hpp"
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
 #include "al/math/al_Vec.hpp"
 #include "al/graphics/al_Shapes.hpp"
 #include "al/math/al_Functions.hpp"
 
-#include "../utils/octtree.cpp"
+#include "al_ext/statedistribution/al_CuttleboneDomain.hpp"
+#include "al_ext/statedistribution/al_CuttleboneStateSimulationDomain.hpp"
+
+#include "../utils/octree.cpp"
 // #include "classes/boid_3.cpp"
 
 const int CUBE_SIZE = 10;
@@ -65,7 +69,13 @@ Vec3f calculateCenterOfMass(const std::vector<Vec3f>& positions) {
 
 string slurp(string fileName);  // forward declaration
 
-struct MyApp : App {
+struct CommonState {
+  // char data[66000]; // larger than a UDP packet
+  // int frame;
+  // float signal;
+};
+
+struct MyApp : DistributedAppWithState<CommonState> {
   
   Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 5.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
@@ -100,7 +110,6 @@ struct MyApp : App {
   // Mesh boidMesh;
   Mesh foodMesh;
   // Mesh lineMesh{Mesh::LINES};
-
 
   // Nav point;
 
