@@ -70,9 +70,14 @@ Vec3f calculateCenterOfMass(const std::vector<Vec3f>& positions) {
 string slurp(string fileName);  // forward declaration
 
 struct CommonState {
-  // char data[66000]; // larger than a UDP packet
-  // int frame;
-  // float signal;
+  // particles
+  float pointSize;
+  Vec3f particlePositions[N_PARTICLES];
+  HSV particleColors[N_PARTICLES];
+  
+  // boids
+  Vec3f boidPositions[MAX_BOIDS];
+  
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
@@ -135,17 +140,17 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // which has no effect because of the final 0!
 
     // create a prototype predator body
-    predMesh.primitive(Mesh::TRIANGLE_FAN);
-    predMesh.vertex(0, 0, -2);
-    predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    predMesh.vertex(0, 1, 0);
-    predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    predMesh.vertex(-1, 0, 0);
-    predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    predMesh.vertex(1, 0, 0);
-    predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    predMesh.vertex(0, 1, 0);
-    predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
+    // predMesh.primitive(Mesh::TRIANGLE_FAN);
+    // predMesh.vertex(0, 0, -2);
+    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
+    // predMesh.vertex(0, 1, 0);
+    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
+    // predMesh.vertex(-1, 0, 0);
+    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
+    // predMesh.vertex(1, 0, 0);
+    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
+    // predMesh.vertex(0, 1, 0);
+    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
 
     // Male Prey Body
     preyMeshMale.primitive(Mesh::TRIANGLE_FAN);
@@ -175,9 +180,17 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
     foodMesh.primitive(Mesh::POINTS);
-    for (int _ = 0; _ < N_PARTICLES; _++) {
-      foodMesh.vertex(randomVec3f(CUBE_SIZE));
-      foodMesh.color(randomColor());
+
+    if (isPrimary()) {
+      for (int i = 0; i < N_PARTICLES; ++i) {
+        state().particlePositions[i] = randomVec3f(CUBE_SIZE);
+        state().particleColors[i] = randomColor();
+      }
+    }
+
+    for (int i = 0; i < N_PARTICLES; ++i) {
+      foodMesh.vertex(state().particlePositions[i]);
+      foodMesh.color(state().particleColors[i]);
 
       float m = rnd::uniform(8.0, 0.5);
       // float m = 3 + rnd::normal() / 2;
@@ -286,7 +299,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     }
 
     g.shader(pointShader);
-    g.shader().uniform("pointSize", pointSize / 100);
+    g.shader().uniform("pointSize", state().pointSize / 100);
     g.blending(true);
     g.blendTrans();
     g.depthTesting(true);
@@ -311,7 +324,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
 int main() {
   MyApp app;
-  app.configureAudio(48000, 512, 2, 0);
+  // app.configureAudio(48000, 512, 2, 0);
   app.start();
 }
 
