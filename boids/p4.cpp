@@ -73,7 +73,6 @@ struct CommonState {
   float pointSize;
   Vec3f particlePositions[N_PARTICLES];
   HSV particleColors[N_PARTICLES];
-  
   // boids
   Vec3f boidPositions[MAX_BOIDS];
   // XXX - boid vertex colors???
@@ -84,12 +83,12 @@ struct MyApp : DistributedAppWithState<CommonState> {
   Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 5.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
   Parameter bRadius{"/Boid Vision Radius", "", 0.25, 0.125, MAX_BOID_RADIUS};
-  Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
+  // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
   Parameter cohesionForce{"/Cohesion Force", "", 0.001, 0.0001, 1.0};
-  Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
+  // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
   Parameter separationForce{"Separation Force", "", 0.001, 0.0001, 1.0};
-  Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
-  Parameter alignmentForce{"Alignment Force", "", 0.001, 0.0001, 1.0};
+  // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
+  Parameter alignmentForce{"Alignment Force", "", 0.833, 0.0001, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
@@ -205,7 +204,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   Vec3d target = Vec3d(r(), r(), r());
   void setUp() {         
-      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.05f);
+      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
       boids.clear();
       for (int i = 0; i < MAX_BOIDS; i++) {        
         Boid b;
@@ -313,11 +312,11 @@ struct MyApp : DistributedAppWithState<CommonState> {
     auto& gui = GUIdomain->newGUI();
     gui.add(timeStep);
     gui.add(pointSize);
-    gui.add(cohesionThresh);
+    // gui.add(cohesionThresh);
     gui.add(cohesionForce);
-    gui.add(separationThresh);
+    // gui.add(separationThresh);
     gui.add(separationForce);
-    gui.add(alignmentThresh);
+    // gui.add(alignmentThresh);
     gui.add(alignmentForce);
     gui.add(bRadius);
   }
