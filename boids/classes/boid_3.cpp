@@ -29,8 +29,9 @@ public:
     float lifespan;
 
     float minEdgeProximity{1.5f}; // Minimum distance from edge to start turning
-    float turnRateFactor{0.2f};  // Factor to adjust turning rate
+    float turnRateFactor{0.2f};   // Factor to adjust turning rate
 
+    std::vector<int> i_boids;
     // Boid() : {}
     
     ~Boid() {}
@@ -167,7 +168,7 @@ public:
         }
     }
 
-    void boidForces(const std::vector<Boid>& boids, const std::vector<int>& i_boids, float headingForce = 0.5, float cohesionForce = 0.5, float separationForce = 0.5) {
+    void boidForces(const std::vector<Boid>& boids, float headingForce = 0.5, float cohesionForce = 0.5, float separationForce = 0.5) {
         Vec3f averageHeading(0, 0, 0);
         Vec3f averageUp(0, 0, 0);
         Vec3f centerOfMass(0, 0, 0);

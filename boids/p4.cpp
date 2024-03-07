@@ -19,7 +19,6 @@ const int CUBE_SIZE = 10;
 
 const int MAX_BOIDS = 4000;
 const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
-// const float MAX_PREDATORS = MAX_BOIDS * 0.1;
 
 const int N_PARTICLES = 1500;
 
@@ -77,7 +76,7 @@ struct CommonState {
   
   // boids
   Vec3f boidPositions[MAX_BOIDS];
-  
+  // XXX - boid vertex colors???
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
@@ -99,6 +98,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   vector<float> mass;
   // Octree foodTree;
   Octree* boidTree{nullptr};
+  // std::vector<int>* i_boids;
 
   double time{0};
   double foodRefresh{0};
@@ -211,6 +211,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         Boid b;
         randomize(b.bNav);
         // b.seek(target, rnd::uniform(0.005, 0.09), rnd::uniform(0.05, 0.75));
+        state().boidPositions[i] = b.bNav.pos();
         boids.push_back(b);
       }
   }
@@ -236,9 +237,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
       boidCenterOfMass += b.bNav.pos();
       
       b.handleBoundary(CUBE_SIZE);
-      vector<int> i_boids;
-      boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
-      b.boidForces(boids, i_boids, alignmentForce.get(), cohesionForce.get(), separationForce.get());
+      // vector<int> i_boids;
+      boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
+      b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get());
       b.updatePosition(dt);
     }
     boidCenterOfMass /= boids.size();
@@ -287,14 +288,14 @@ struct MyApp : DistributedAppWithState<CommonState> {
       // boidTree.build(boids);    
       // vector<int> i_boids;
       // boidTree.queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
-      // Mesh m{Mesh::LINES};
-      // for (int j : i_boids) {
-      //   if (i == j) continue;  
-      //   m.vertex(b.bNav.pos());
-      //   m.vertex(boids[j].bNav.pos());
-      //   m.color(1.0, 1.0, 1.0);
-      //   g.draw(m);
-      // }
+      Mesh m{Mesh::LINES};
+      for (int j : b.i_boids) {
+        if (i == j) continue;
+        m.vertex(b.bNav.pos());
+        m.vertex(boids[j].bNav.pos());
+        m.color(1.0, 1.0, 1.0);
+        g.draw(m);
+      }
       ++i;
     }
 
@@ -324,7 +325,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
 int main() {
   MyApp app;
-  // app.configureAudio(48000, 512, 2, 0);
+  app.configureAudio(48000, 512, 2, 0);
   app.start();
 }
 
