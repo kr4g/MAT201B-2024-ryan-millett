@@ -75,7 +75,7 @@ struct CommonState {
   HSV particleColors[N_PARTICLES];
   // boids
   Vec3f boidPositions[MAX_BOIDS];
-  // XXX - boid vertex colors???
+  HSV boidColors[MAX_BOIDS];
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
@@ -143,7 +143,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
       // Color newly added vertices
       for (int i = 0; i < Nv; ++i) {
         float f = float(i) / Nv;
-        boidMesh.color(HSV(f * 0.1 + 0.2, 1, 1));
+        HSV color = HSV(f * 0.1 + 0.2, 1, 1);
+        state().boidColors[i] = color;
+        boidMesh.color(color);
       }
     }
 
