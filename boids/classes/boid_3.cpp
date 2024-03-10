@@ -27,6 +27,8 @@ public:
     float age{0.0f};
     float ageRate{0.001f};
     float lifespan;
+    int meshIdx;
+    int Nv;
 
     float minEdgeProximity{1.5f}; // Minimum distance from edge to start turning
     float turnRateFactor{0.2f};   // Factor to adjust turning rate
