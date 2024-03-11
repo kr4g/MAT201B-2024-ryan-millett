@@ -34,21 +34,18 @@ struct Axes {
     Mesh mesh(Mesh::LINES);
     // x axis
     mesh.vertex(-CUBE_SIZE, 0, 0);
-    // mesh.color(1, 1, 1);  // white
     mesh.color(1, 0, 0);
     mesh.vertex(CUBE_SIZE, 0, 0);
     mesh.color(1, 0, 0);
 
     // y axis
     mesh.vertex(0, -CUBE_SIZE, 0);
-    // mesh.color(1, 1, 1);  // white
     mesh.color(0, 1, 0);
     mesh.vertex(0, CUBE_SIZE, 0);
     mesh.color(0, 1, 0);
 
     // z axis
     mesh.vertex(0, 0, -CUBE_SIZE);
-    // mesh.color(1, 1, 1);  // white
     mesh.color(0, 0, 1);
     mesh.vertex(0, 0, CUBE_SIZE);
     mesh.color(0, 0, 1);
@@ -56,15 +53,6 @@ struct Axes {
     g.draw(mesh);
   }
 };
-
-Vec3f calculateCenterOfMass(const std::vector<Vec3f>& positions) {
-    Vec3f center(0, 0, 0);
-    for (auto& pos : positions) {
-        center += pos;
-    }
-    center /= positions.size();
-    return center;
-}
 
 string slurp(string fileName);  // forward declaration
 
@@ -95,9 +83,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   vector<Vec3f> velocity;
   vector<Vec3f> force;
   vector<float> mass;
-  // Octree foodTree;
   Octree* boidTree{nullptr};
-  // std::vector<int>* i_boids;
 
   double time{0};
   double foodRefresh{0};
@@ -138,22 +124,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // nav().faceToward(Vec3d(0), Vec3d(0), 0);
     // which has no effect because of the final 0!
 
-    // create a prototype predator body
-    // predMesh.primitive(Mesh::TRIANGLE_FAN);
-    // predMesh.vertex(0, 0, -2);
-    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    // predMesh.vertex(0, 1, 0);
-    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    // predMesh.vertex(-1, 0, 0);
-    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    // predMesh.vertex(1, 0, 0);
-    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-    // predMesh.vertex(0, 1, 0);
-    // predMesh.color(rnd::uniform(0.5, 1.0), rnd::uniform(0.1, 0.67), rnd::uniform(0.0, 0.33));
-
     // Male Prey Body
     preyMeshMale.primitive(Mesh::TRIANGLE_FAN);
-		preyMeshMale.vertex(0, 0, -3);        // Noise
+		preyMeshMale.vertex(0, 0, -3);        // Nose
 		preyMeshMale.color(0, 0.5, 1.0);
 		preyMeshMale.vertex(0, 1, 0);         // Top center edge ("back")
 		preyMeshMale.color(0.45, 0.17, 0.28);
@@ -166,7 +139,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     // Female Prey Body
     preyMeshFemale.primitive(Mesh::TRIANGLE_FAN);
-		preyMeshFemale.vertex(0, 0, -5);      // Noise
+		preyMeshFemale.vertex(0, 0, -5);      // Nose
 		preyMeshFemale.color(0.6, 1.0, 0.2);
 		preyMeshFemale.vertex(0, 0.5, 0);     // Top center edge ("back")
 		preyMeshFemale.color(0.2, 0.7, 0.1);
@@ -190,15 +163,12 @@ struct MyApp : DistributedAppWithState<CommonState> {
     for (int i = 0; i < N_PARTICLES; ++i) {
       foodMesh.vertex(state().particlePositions[i]);
       foodMesh.color(state().particleColors[i]);
-
       float m = rnd::uniform(8.0, 0.5);
       // float m = 3 + rnd::normal() / 2;
       if (m < 0.5) m = 0.5;
       mass.push_back(m);
       // using a simplified volume/size relationship
       foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
-      // velocity.push_back(randomVec3f(-0.025));
-      // force.push_back(randomVec3f(-0.000001));
     }
   }  
   
@@ -206,10 +176,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
   void setUp() {         
       boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
       boids.clear();
-      for (int i = 0; i < MAX_BOIDS; i++) {        
+      for (int i = 0; i < MAX_BOIDS; ++i) {
         Boid b;
         randomize(b.bNav);
-        // b.seek(target, rnd::uniform(0.005, 0.09), rnd::uniform(0.05, 0.75));
         state().boidPositions[i] = b.bNav.pos();
         boids.push_back(b);
       }
@@ -227,25 +196,16 @@ struct MyApp : DistributedAppWithState<CommonState> {
     if (freeze) return;
     dt *= timeStep.get();
     time += dt;
-    // // vector<Nav*> &boidPosition(navPtrs);
-    // vector<Vec3f> &foodPosition(foodMesh.vertices());
     boidTree->build(boids);
-    // lineMesh.reset();
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
-      boidCenterOfMass += b.bNav.pos();
-      
+      boidCenterOfMass += b.bNav.pos();      
       b.handleBoundary(CUBE_SIZE);
-      // vector<int> i_boids;
       boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
       b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get());
       b.updatePosition(dt);
     }
     boidCenterOfMass /= boids.size();
-
-    // clear all accelerations (IMPORTANT!!)
-    // for (auto &a : force) a.set(0);
-
     nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
   }
 
@@ -263,8 +223,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // graphics / drawing settings
     g.clear(0);
     g.meshColor();
-    g.pointSize(10);    
-    // g.rotate(angle, Vec3d(0, 1, 0));
+    g.pointSize(10);
     // axes.draw(g);
 
     int i = 0;
@@ -275,7 +234,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.translate(a.pos());
         g.rotate(a.quat());
         g.scale(
-          // (i % 11 != 0) ? 0.025 : 0.01
           (i % 11 != 0) ? 0.01 : 0.005
         );
         g.draw(
@@ -283,10 +241,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
         );
         g.popMatrix();
       }
-      // Octree boidTree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.125f);
-      // boidTree.build(boids);    
-      // vector<int> i_boids;
-      // boidTree.queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), i_boids);
       Mesh m{Mesh::LINES};
       for (int j : b.i_boids) {
         if (i == j) continue;

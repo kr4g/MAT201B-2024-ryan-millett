@@ -228,7 +228,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       
       // XXX - this is wrong
       Mat4f xfm;
-      // xfm.setIdentity();
+      xfm.setIdentity();
       xfm.translate(Vec3f(b.bNav.pos()));
       boidMesh.transform(xfm, b.meshIdx, b.meshIdx + b.Nv);
       
