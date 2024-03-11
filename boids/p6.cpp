@@ -15,7 +15,7 @@
 #include "../utils/octree.cpp"
 // #include "classes/boid_3.cpp"
 
-const int CUBE_SIZE = 20;
+const int CUBE_SIZE = 25;
 
 const int MAX_BOIDS = 4000;
 const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
@@ -70,13 +70,13 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   Parameter timeStep{"Time Step", "", 3.0, "", 0.0333, 10.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 1.0, 0.125, MAX_BOID_RADIUS};
+  Parameter bRadius{"/Boid Vision Radius", "", 1.0, 0.05, MAX_BOID_RADIUS};
   // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
-  Parameter cohesionForce{"/Cohesion Force", "", 0.2, 0.0001, 1.0};
+  Parameter cohesionForce{"/Cohesion Force", "", 0.35, 0.0, 1.0};
   // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
-  Parameter separationForce{"Separation Force", "", 0.325, 0.0001, 1.0};
+  Parameter separationForce{"Separation Force", "", 0.5, 0.0, 1.0};
   // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
-  Parameter alignmentForce{"Alignment Force", "", 0.65, 0.0001, 1.0};
+  Parameter alignmentForce{"Alignment Force", "", 0.65, 0.0, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
@@ -115,7 +115,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // place the camera so that we can see the axes
     // nav().pos(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE * 1.167);
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
-    nav().pos(CUBE_SIZE, CUBE_SIZE * 0.5, CUBE_SIZE * 1.5);
+    // nav().pos(CUBE_SIZE, CUBE_SIZE * 0.5, CUBE_SIZE * 1.5);
+    nav().pos(Vec3f(0.0));
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
     // Don't do this:
@@ -200,7 +201,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
       boidCenterOfMass += b.bNav.pos();
-      b.originAvoidance(0.5, 2.0);   
+      b.originAvoidance(0.5, 2.0);
       b.handleBoundary(CUBE_SIZE);
 
       boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);

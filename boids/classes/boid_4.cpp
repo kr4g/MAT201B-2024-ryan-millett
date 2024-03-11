@@ -103,11 +103,13 @@ public:
         Vec3f averageHeading(0, 0, 0);
         Vec3f centerOfMass(0, 0, 0);
         Vec3f separation(0, 0, 0);
+        Vec3f averageUp(0, 0, 0);
 
         for (int i : this->i_boids) {
             Vec3f toNeighbor = boids[i].bNav.pos() - this->bNav.pos();
             float dist = toNeighbor.mag();
             averageHeading += boids[i].bNav.uf();
+            averageUp += boids[i].bNav.uu();
             centerOfMass += boids[i].bNav.pos();
             if (dist > 0) {
                 separation += (toNeighbor / -dist) / (dist * dist);
@@ -115,12 +117,13 @@ public:
         }
 
         if (!this->i_boids.empty()) {
+            averageUp /= this->i_boids.size();
             averageHeading /= this->i_boids.size();
             centerOfMass /= this->i_boids.size();
             separation /= this->i_boids.size();
 
             Vec3f desiredDirection = (averageHeading.normalized() * alignmentForce) + ((centerOfMass - this->bNav.pos()).normalized() * cohesionForce) + (separation.normalized() * separationForce);
-            this->bNav.faceToward(this->bNav.pos() + desiredDirection, turnRateFactor);
+            this->bNav.faceToward(this->bNav.pos() + desiredDirection, averageUp.normalized(), turnRateFactor);
         }
     }
 
