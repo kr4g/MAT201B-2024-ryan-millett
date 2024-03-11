@@ -15,7 +15,7 @@
 #include "../utils/octree.cpp"
 // #include "classes/boid_3.cpp"
 
-const int CUBE_SIZE = 10;
+const int CUBE_SIZE = 20;
 
 const int MAX_BOIDS = 4000;
 const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
@@ -238,7 +238,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.rotate(a.quat());
         g.scale(
           // (i % 11 != 0) ? 0.01 : 0.005
-          (i % 11 != 0) ? 0.03 : 0.02
+          (i % 11 != 0) ? 0.05 : 0.03
         );
         g.draw(
           (i % 11 != 0) ? preyMeshMale : preyMeshFemale

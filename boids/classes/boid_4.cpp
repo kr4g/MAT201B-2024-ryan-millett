@@ -89,11 +89,11 @@ public:
                 float proximityFactor = 1.0 - (dist / avoidanceRadius);
                 biasedForward = forward + awayFromOrigin * theta * proximityFactor;
                 biasedForward.normalize();
-                bNav.faceToward(pos + biasedForward, bNav.uu(), 0.005);
+                bNav.faceToward(pos + biasedForward, 0.005);
                 if (dist < avoidanceRadius) {
                     turnRate = turnRateFactor * (1.0 - dist / avoidanceRadius);
                     biasedForward = forward + awayFromOrigin * theta * proximityFactor;
-                    bNav.faceToward(bNav.pos() + biasedForward, bNav.uu(), turnRate);
+                    bNav.faceToward(bNav.pos() + biasedForward, turnRate);
                 }                
             }
         }
@@ -101,37 +101,29 @@ public:
 
     void boidForces(const std::vector<Boid>& boids, float alignmentForce = 0.5, float cohesionForce = 0.5, float separationForce = 0.5) {
         Vec3f averageHeading(0, 0, 0);
-        Vec3f averageUp(0, 0, 0);
         Vec3f centerOfMass(0, 0, 0);
         Vec3f separation(0, 0, 0);
 
-        for (int i : i_boids) {
-            Vec3f toNeighbor = boids[i].bNav.pos() - bNav.pos();
+        for (int i : this->i_boids) {
+            Vec3f toNeighbor = boids[i].bNav.pos() - this->bNav.pos();
             float dist = toNeighbor.mag();
-            // alignment
             averageHeading += boids[i].bNav.uf();
-            averageUp += boids[i].bNav.uu();
-            // cohesion
             centerOfMass += boids[i].bNav.pos();
-            // separation
-            Vec3f away = Vec3f(toNeighbor).normalize() / (dist*dist);
-            separation -= away;
+            if (dist > 0) {
+                separation += (toNeighbor / -dist) / (dist * dist);
+            }
         }
-        averageHeading /= i_boids.size();
-        averageUp /= i_boids.size();
-        centerOfMass /= i_boids.size();
-        // separation /= i_boids.size();
 
-        // Vec3f direction(0, 0, 0);
+        if (!this->i_boids.empty()) {
+            averageHeading /= this->i_boids.size();
+            centerOfMass /= this->i_boids.size();
+            separation /= this->i_boids.size();
 
-        // direction += averageHeading;
-        // direction += centerOfMass;
-        // direction += separationForce;
-        
-        bNav.faceToward(bNav.pos() + averageHeading.normalized(), averageUp.normalized(), turnRateFactor*alignmentForce);
-        bNav.faceToward(centerOfMass, turnRateFactor*cohesionForce);
-        bNav.faceToward(separation, turnRateFactor*separationForce);
+            Vec3f desiredDirection = (averageHeading.normalized() * alignmentForce) + ((centerOfMass - this->bNav.pos()).normalized() * cohesionForce) + (separation.normalized() * separationForce);
+            this->bNav.faceToward(this->bNav.pos() + desiredDirection, turnRateFactor);
+        }
     }
+
 
     void seek(const Vec3d& a, double amt, float smooth = 0.1) { 
         target.set(a);
