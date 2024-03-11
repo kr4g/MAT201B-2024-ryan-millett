@@ -68,15 +68,15 @@ struct CommonState {
 
 struct MyApp : DistributedAppWithState<CommonState> {
   
-  Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 5.0};
+  Parameter timeStep{"Time Step", "", 3.0, "", 0.0333, 10.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 0.25, 0.125, MAX_BOID_RADIUS};
+  Parameter bRadius{"/Boid Vision Radius", "", 1.0, 0.125, MAX_BOID_RADIUS};
   // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
-  Parameter cohesionForce{"/Cohesion Force", "", 0.001, 0.0001, 1.0};
+  Parameter cohesionForce{"/Cohesion Force", "", 0.2, 0.0001, 1.0};
   // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
-  Parameter separationForce{"Separation Force", "", 0.001, 0.0001, 1.0};
+  Parameter separationForce{"Separation Force", "", 0.325, 0.0001, 1.0};
   // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
-  Parameter alignmentForce{"Alignment Force", "", 0.833, 0.0001, 1.0};
+  Parameter alignmentForce{"Alignment Force", "", 0.65, 0.0001, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
