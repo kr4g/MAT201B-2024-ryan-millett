@@ -240,7 +240,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.rotate(a.quat());
         g.scale(
           // (i % 11 != 0) ? 0.01 : 0.005
-          (i % 11 != 0) ? 0.05 : 0.03
+          (i % 11 != 0) ? 0.03 : 0.02
         );
         g.draw(
           (i % 11 != 0) ? preyMeshMale : preyMeshFemale
