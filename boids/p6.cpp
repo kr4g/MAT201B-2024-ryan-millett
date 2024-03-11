@@ -24,9 +24,9 @@ const int N_PARTICLES = 1500;
 
 using namespace al;
 
-double r() { return rnd::uniformS() * CUBE_SIZE; }
+double r() { return rnd::uniformS(); }
 Vec3f randomVec3f(float scale = CUBE_SIZE) {
-  return Vec3f(r(), r(), r());
+  return Vec3f(r(), r(), r()) * scale;
 }
 
 struct Axes {
