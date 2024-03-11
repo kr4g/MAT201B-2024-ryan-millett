@@ -186,9 +186,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
   }
   
   void randomize(Nav& boidNav) {
-    boidNav.pos(randomVec3f(CUBE_SIZE*0.75));
+    boidNav.pos(randomVec3f(CUBE_SIZE*0.95));
     boidNav.quat().set(r(), r(), r(), r()).normalize();
-    boidNav.faceToward(randomVec3f(CUBE_SIZE*0.75), 0.3);
+    boidNav.faceToward(randomVec3f(CUBE_SIZE), 0.5);
   }
   
   bool freeze = false;
