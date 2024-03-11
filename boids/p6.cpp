@@ -25,7 +25,7 @@ const int N_PARTICLES = 1500;
 using namespace al;
 
 double r() { return rnd::uniformS(); }
-Vec3f randomVec3f(float scale = CUBE_SIZE) {
+Vec3f randomVec3f(float scale = 1.0) {
   return Vec3f(r(), r(), r()) * scale;
 }
 
@@ -70,7 +70,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   Parameter timeStep{"Time Step", "", 3.0, "", 0.0333, 10.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 1.0, 0.05, MAX_BOID_RADIUS};
+  Parameter bRadius{"/Boid Vision Radius", "", 0.5, 0.05, MAX_BOID_RADIUS};
   // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
   Parameter cohesionForce{"/Cohesion Force", "", 0.35, 0.0, 1.0};
   // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
@@ -187,6 +187,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   void randomize(Nav& boidNav) {
     boidNav.pos(randomVec3f(CUBE_SIZE*0.75));
+    boidNav.faceToward(randomVec3f(CUBE_SIZE*0.75), randomVec3f(), 0.9);
     boidNav.quat().set(r(), r(), r(), r()).normalize();
   }
   
