@@ -5,7 +5,7 @@
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
 
-#include "MAT201B-2024-ryan-millett/boids/classes/boid_3.cpp"
+#include "MAT201B-2024-ryan-millett/boids/classes/boid_4.cpp"
 
 using namespace al;
 

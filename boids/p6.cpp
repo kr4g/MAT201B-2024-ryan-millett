@@ -190,19 +190,21 @@ struct MyApp : DistributedAppWithState<CommonState> {
   }
   
   bool freeze = false;
-  double phase = 0;
-  double trackingReset = 0.0;
   void onAnimate(double dt) override {
     if (freeze) return;
     dt *= timeStep.get();
     time += dt;
+
     boidTree->build(boids);
+
     Vec3d boidCenterOfMass(0, 0, 0);
     for (auto& b : boids) {
       boidCenterOfMass += b.bNav.pos();
-      b.originAvoidance(1.0, 3.0);   
+      b.originAvoidance(0.5, 2.0);   
       b.handleBoundary(CUBE_SIZE);
+
       boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
+
       b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get());
       b.updatePosition(dt);
     }
@@ -235,7 +237,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.translate(a.pos());
         g.rotate(a.quat());
         g.scale(
-          (i % 11 != 0) ? 0.01 : 0.005
+          // (i % 11 != 0) ? 0.01 : 0.005
+          (i % 11 != 0) ? 0.03 : 0.02
         );
         g.draw(
           (i % 11 != 0) ? preyMeshMale : preyMeshFemale
