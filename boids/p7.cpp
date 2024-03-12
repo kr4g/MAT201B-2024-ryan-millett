@@ -64,6 +64,7 @@ struct CommonState {
   // boids
   Vec3f boidPositions[MAX_BOIDS];
   // XXX - boid vertex colors???
+  Pose pose;
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
@@ -201,25 +202,30 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   bool freeze = false;
   void onAnimate(double dt) override {
-    if (freeze) return;
-    dt *= timeStep.get();
-    time += dt;
+    if (isPrimary()) {
+      if (freeze) return;
+      dt *= timeStep.get();
+      time += dt;
+      boidTree->build(boids);
 
-    boidTree->build(boids);
+      Vec3d boidCenterOfMass(0, 0, 0);
+      for (auto& b : boids) {
+        boidCenterOfMass += b.bNav.pos();
+        b.originAvoidance(0.5, 2.0);
+        b.handleBoundary(CUBE_SIZE);
 
-    Vec3d boidCenterOfMass(0, 0, 0);
-    for (auto& b : boids) {
-      boidCenterOfMass += b.bNav.pos();
-      b.originAvoidance(0.5, 2.0);
-      b.handleBoundary(CUBE_SIZE);
+        boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
 
-      boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
-
-      b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get(), turnRate.get());
-      b.updatePosition(dt);
+        b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get(), turnRate.get());
+        b.updatePosition(dt);
+      }
+      boidCenterOfMass /= boids.size();
+      nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
+    } else {
+      for (int i = 0; i < MAX_BOIDS; ++i) {
+        state().boidPositions[i] = boids[i].bNav.pos();
+      }
     }
-    boidCenterOfMass /= boids.size();
-    nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
   }
 
   bool onKeyDown(Keyboard const& k) override {
