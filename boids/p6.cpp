@@ -77,6 +77,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   Parameter separationForce{"Separation Force", "", 0.5, 0.0, 1.0};
   // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
   Parameter alignmentForce{"Alignment Force", "", 0.65, 0.0, 1.0};
+  Parameter turnRate{"Turn Rate", "", 1.0, 0.0001, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
@@ -207,7 +208,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
       boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
 
-      b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get());
+      b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get(), turnRate.get());
       b.updatePosition(dt);
     }
     boidCenterOfMass /= boids.size();
@@ -281,6 +282,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     gui.add(separationForce);
     // gui.add(alignmentThresh);
     gui.add(alignmentForce);
+    gui.add(turnRate);
     gui.add(bRadius);
   }
 };

@@ -99,7 +99,7 @@ public:
         }
     }
 
-    void boidForces(const std::vector<Boid>& boids, float alignmentForce = 0.5, float cohesionForce = 0.5, float separationForce = 0.5) {
+    void boidForces(const std::vector<Boid>& boids, float alignmentForce = 0.5, float cohesionForce = 0.5, float separationForce = 0.5, float turnRate = 0.5) {
         Vec3f averageHeading(0, 0, 0);
         Vec3f centerOfMass(0, 0, 0);
         Vec3f separation(0, 0, 0);
@@ -121,9 +121,11 @@ public:
             averageHeading /= this->i_boids.size();
             centerOfMass /= this->i_boids.size();
             separation /= this->i_boids.size();
+            
+            // float turn = (alignmentForce + cohesionForce + separationForce) / 3.0;
 
             Vec3f desiredDirection = (averageHeading.normalized() * alignmentForce) + ((centerOfMass - this->bNav.pos()).normalized() * cohesionForce) + (separation.normalized() * separationForce);
-            this->bNav.faceToward(this->bNav.pos() + desiredDirection, averageUp.normalized(), turnRateFactor);
+            this->bNav.faceToward(this->bNav.pos() + desiredDirection, averageUp.normalized(), turnRate*turnRateFactor);
         }
     }
 
