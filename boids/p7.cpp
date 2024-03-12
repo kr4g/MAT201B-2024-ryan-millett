@@ -118,7 +118,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // place the camera so that we can see the axes
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(CUBE_SIZE, CUBE_SIZE * 0.5, CUBE_SIZE * 1.5);
-    nav().pos(Vec3f(0.0));
+    nav().pos(Vec3f(20.0, 0.0, 0.0));
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
     // Don't do this:
@@ -204,6 +204,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   bool freeze = false;
   void onAnimate(double dt) override {
+    // std::cout << nav().pos() << std::endl;
     if (isPrimary()) {
       if (freeze) return;
       dt *= timeStep.get();
