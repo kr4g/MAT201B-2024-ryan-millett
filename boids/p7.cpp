@@ -95,7 +95,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   double initDist;
 
   Axes axes;
-  Mesh predMesh;
+  // Mesh predMesh;
   Mesh preyMeshMale;
   Mesh preyMeshFemale;
   // Mesh boidMesh;
@@ -164,22 +164,22 @@ struct MyApp : DistributedAppWithState<CommonState> {
         state().boidPositions[i] = b.bNav.pos();
         boids.push_back(b);
       }
-      // for (int i = 0; i < N_PARTICLES; ++i) {
-      //   state().particlePositions[i] = randomVec3f(CUBE_SIZE);
-      //   state().particleColors[i] = randomColor();
-      // }
+      for (int i = 0; i < N_PARTICLES; ++i) {
+        state().particlePositions[i] = randomVec3f(CUBE_SIZE);
+        state().particleColors[i] = randomColor();
+      }
     }
 
-    // for (int i = 0; i < N_PARTICLES; ++i) {
-    //   foodMesh.vertex(state().particlePositions[i]);
-    //   foodMesh.color(state().particleColors[i]);
-    //   float m = rnd::uniform(8.0, 0.5);
-    //   // float m = 3 + rnd::normal() / 2;
-    //   if (m < 0.5) m = 0.5;
-    //   mass.push_back(m);
-    //   // using a simplified volume/size relationship
-    //   foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
-    // }
+    for (int i = 0; i < N_PARTICLES; ++i) {
+      foodMesh.vertex(state().particlePositions[i]);
+      foodMesh.color(state().particleColors[i]);
+      float m = rnd::uniform(8.0, 0.5);
+      // float m = 3 + rnd::normal() / 2;
+      if (m < 0.5) m = 0.5;
+      mass.push_back(m);
+      // using a simplified volume/size relationship
+      foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
+    }
   }  
   
   void setUp() {         
