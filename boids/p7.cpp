@@ -56,13 +56,14 @@ struct Axes {
 
 string slurp(string fileName);  // forward declaration
 
+const int NEIGHBOR_LIMIT = 10;
 struct CommonState {
   // particles
   float pointSize;
-  Vec3f particlePositions[N_PARTICLES];
-  HSV particleColors[N_PARTICLES];
   // boids
-  Vec3f boidPositions[MAX_BOIDS];
+  Pose boid[MAX_BOIDS];
+
+  int i_boids[MAX_BOIDS][NEIGHBOR_LIMIT];
   // XXX - boid vertex colors???
   Pose pose;
   Vec3f boidCenterMass;
@@ -158,23 +159,23 @@ struct MyApp : DistributedAppWithState<CommonState> {
     foodMesh.primitive(Mesh::POINTS);
 
     boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
-    if (isPrimary()) {
+
       boids.clear();
       for (int i = 0; i < MAX_BOIDS; ++i) {
         Boid b;
         randomize(b.bNav);
-        state().boidPositions[i] = b.bNav.pos();
+        state().boid[i] = b.bNav.pos();
         boids.push_back(b);
       }
       for (int i = 0; i < N_PARTICLES; ++i) {
-        state().particlePositions[i] = randomVec3f(CUBE_SIZE);
-        state().particleColors[i] = randomColor();
       }
+
+    if (isPrimary()) {
     }
 
     for (int i = 0; i < N_PARTICLES; ++i) {
-      foodMesh.vertex(state().particlePositions[i]);
-      foodMesh.color(state().particleColors[i]);
+      foodMesh.vertex(randomVec3f(CUBE_SIZE));
+      foodMesh.color(randomColor());
       float m = rnd::uniform(8.0, 0.5);
       // float m = 3 + rnd::normal() / 2;
       if (m < 0.5) m = 0.5;
@@ -190,7 +191,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       for (int i = 0; i < MAX_BOIDS; ++i) {
         Boid b;
         randomize(b.bNav);
-        state().boidPositions[i] = b.bNav.pos();
+        state().boid[i] = b.bNav.pos();
         boids.push_back(b);
       }
   }
@@ -210,6 +211,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       boidTree->build(boids);
 
       Vec3d boidCenterOfMass(0, 0, 0);
+      int i = 0;
       for (auto& b : boids) {
         boidCenterOfMass += b.bNav.pos();
         b.originAvoidance(0.5, 2.0);
@@ -219,11 +221,42 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
         b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get(), turnRate.get());
         b.updatePosition(dt);
+
+        state().boid[i].set(b.bNav);
+        i++;
       }
       boidCenterOfMass /= boids.size();
       nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
-    } else {
+      state().pose = nav();
       
+      for (int i = 0; i < boids.size(); i++) {
+        for (int j = 0; j < NEIGHBOR_LIMIT; j++) {
+          state().i_boids[i][j] = -1;
+        }
+        for (int j = 0; j < boids[i].i_boids.size() && j < NEIGHBOR_LIMIT; j++) {
+          state().i_boids[i][j] = boids[i].i_boids[j];
+        }
+      }
+
+    } else {
+      nav().set(state().pose);
+
+      int i = 0;
+      for (auto& b : boids) {
+        b.bNav.set(state().boid[i]);
+        i++;
+      }
+
+      for (int i = 0; i < boids.size(); i++) {
+        boids[i].i_boids.clear();
+        for (int j = 0; j < NEIGHBOR_LIMIT; j++) {
+          int n = state().i_boids[i][j];
+          if (n == -1) break;
+          boids[i].i_boids.push_back(n);
+        }
+      }
+    
+      cout << boids[0].i_boids.size() << endl;
     }
   }
 
