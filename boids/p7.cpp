@@ -256,7 +256,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         }
       }
     
-      cout << boids[0].i_boids.size() << endl;
+      // cout << boids[0].i_boids.size() << endl;
     }
   }
 
