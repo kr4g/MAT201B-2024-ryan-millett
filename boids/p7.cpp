@@ -65,6 +65,7 @@ struct CommonState {
   Vec3f boidPositions[MAX_BOIDS];
   // XXX - boid vertex colors???
   Pose pose;
+  Vec3f boidCenterMass;
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
@@ -222,9 +223,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       boidCenterOfMass /= boids.size();
       nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
     } else {
-      for (int i = 0; i < MAX_BOIDS; ++i) {
-        state().boidPositions[i] = boids[i].bNav.pos();
-      }
+      
     }
   }
 
