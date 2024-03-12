@@ -77,7 +77,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   Parameter separationForce{"Separation Force", "", 0.5, 0.0, 1.0};
   // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
   Parameter alignmentForce{"Alignment Force", "", 0.65, 0.0, 1.0};
-  Parameter turnRate{"Turn Rate", "", 1.0, 0.0001, 1.0};
+  Parameter turnRate{"Turn Rate", "", 0.5, 0.0001, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
