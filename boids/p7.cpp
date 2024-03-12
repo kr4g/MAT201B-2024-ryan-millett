@@ -288,7 +288,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       quit();
     }
 
-    if (isPrimary) {
+    if (isPrimary()) {
       auto guiDomain = GUIDomain::enableGUI(defaultWindowDomain());
       auto &gui = guiDomain->newGUI();
       gui.add(timeStep);
