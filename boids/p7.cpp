@@ -15,7 +15,7 @@
 #include "../utils/octree.cpp"
 // #include "classes/boid_4.cpp"
 
-const int CUBE_SIZE = 20;
+const int CUBE_SIZE = 10;
 
 const int MAX_BOIDS = 4000;
 const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
@@ -118,7 +118,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // place the camera so that we can see the axes
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     // nav().pos(CUBE_SIZE, CUBE_SIZE * 0.5, CUBE_SIZE * 1.5);
-    nav().pos(Vec3f(10.0, 0.0, 0.0));
+    nav().pos(Vec3f(0.0));
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
     // Don't do this:
