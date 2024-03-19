@@ -121,14 +121,11 @@ public:
             averageHeading /= this->i_boids.size();
             centerOfMass /= this->i_boids.size();
             separation /= this->i_boids.size();
-            
-            // float turn = (alignmentForce + cohesionForce + separationForce) / 3.0;
 
             Vec3f desiredDirection = (averageHeading.normalized() * alignmentForce) + ((centerOfMass - this->bNav.pos()).normalized() * cohesionForce) + (separation.normalized() * separationForce);
             this->bNav.faceToward(this->bNav.pos() + desiredDirection, averageUp.normalized(), turnRate*turnRateFactor);
         }
     }
-
 
     void seek(const Vec3d& a, double amt, float smooth = 0.1) { 
         target.set(a);

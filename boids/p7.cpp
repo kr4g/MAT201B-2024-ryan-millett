@@ -17,7 +17,7 @@
 
 const int CUBE_SIZE = 10;
 
-const int MAX_BOIDS = 4000;
+const int MAX_BOIDS = 2000;
 const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
 
 const int N_PARTICLES = 1500;
@@ -71,16 +71,16 @@ struct CommonState {
 
 struct MyApp : DistributedAppWithState<CommonState> {
   
-  Parameter timeStep{"Time Step", "", 3.0, "", 0.0333, 10.0};
+  Parameter timeStep{"Time Step", "", 0.75, "", 0.0333, 3.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 0.5, 0.05, MAX_BOID_RADIUS};
+  Parameter bRadius{"/Boid Vision Radius", "", 0.45, 0.05, MAX_BOID_RADIUS};
   // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
   Parameter cohesionForce{"/Cohesion Force", "", 0.35, 0.0, 1.0};
   // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
-  Parameter separationForce{"Separation Force", "", 0.5, 0.0, 1.0};
+  Parameter separationForce{"Separation Force", "", 0.75, 0.0, 1.0};
   // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
-  Parameter alignmentForce{"Alignment Force", "", 0.65, 0.0, 1.0};
-  Parameter turnRate{"Turn Rate", "", 0.5, 0.0001, 1.0};
+  Parameter alignmentForce{"Alignment Force", "", 0.25, 0.0, 1.0};
+  Parameter turnRate{"Turn Rate", "", 0.025, 0.0001, 1.0};
   
   std::vector<Boid> boids;    
   std::vector<Vec3f> food;
@@ -200,7 +200,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   void randomize(Nav& boidNav) {
     boidNav.pos(randomVec3f(CUBE_SIZE*0.95));
     boidNav.quat().set(r(), r(), r(), r()).normalize();
-    boidNav.faceToward(randomVec3f(CUBE_SIZE), 0.5);
+    // boidNav.faceToward(randomVec3f(CUBE_SIZE), 0.5);
   }
   
   bool freeze = false;
@@ -216,7 +216,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       int i = 0;
       for (auto& b : boids) {
         boidCenterOfMass += b.bNav.pos();
-        b.originAvoidance(0.5, 2.0);
+        // b.originAvoidance(0.5, 2.0);
         b.handleBoundary(CUBE_SIZE);
 
         boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
