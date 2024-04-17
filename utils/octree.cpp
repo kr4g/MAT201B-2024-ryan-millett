@@ -14,9 +14,9 @@ using namespace al;
 using namespace std;
 
 struct OctreeNode {
-    Vec3f center;  // Center of the node
-    Vec3f halfSize;  // Half the size of the node
-    vector<int> particleIndices;  // Indices of particles in this node
+    Vec3f center;
+    Vec3f halfSize;
+    vector<int> particleIndices;
     OctreeNode* children[8]{};
 
     OctreeNode(const Vec3f& c, const Vec3f& hs) : center(c), halfSize(hs) {}

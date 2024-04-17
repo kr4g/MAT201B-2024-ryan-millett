@@ -15,10 +15,11 @@
 #include "../utils/octree.cpp"
 // #include "classes/boid_4.cpp"
 
-const int CUBE_SIZE = 10;
+const int CUBE_SIZE = 20;
 
-const int MAX_BOIDS = 2000;
-const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
+const int MAX_BOIDS = 5000;
+const int NEIGHBOR_LIMIT = 100;
+// const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
 
 const int N_PARTICLES = 1500;
 
@@ -56,7 +57,6 @@ struct Axes {
 
 string slurp(string fileName);  // forward declaration
 
-const int NEIGHBOR_LIMIT = 10;
 struct CommonState {
   // particles
   float pointSize;
@@ -73,7 +73,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   
   Parameter timeStep{"Time Step", "", 0.75, "", 0.0333, 3.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 0.45, 0.05, MAX_BOID_RADIUS};
+  Parameter bRadius{"/Boid Vision Radius", "", 0.45, 0.05, 1.5};
   // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
   Parameter cohesionForce{"/Cohesion Force", "", 0.35, 0.0, 1.0};
   // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};

@@ -18,7 +18,7 @@ using namespace al;
 #include <vector>
 using namespace std;
 
-float n_particles = 20000;
+float n_particles = 80000;
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
