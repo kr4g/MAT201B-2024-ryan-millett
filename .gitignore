@@ -1,3 +1,29 @@
-build/
-bin/
+# directories to ignore
+bin
+build
+data
+presets
+out
+.vs
+.vscode
 .DS_Store
+
+# configuration files
+imgui.ini
+
+# ignore potentially big files
+*.log
+*.png
+*.PNG
+*.gif
+*.GIF
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.tiff
+*.TIFF
+*.bmp
+*.BMP
+*.bin
+*.binary
