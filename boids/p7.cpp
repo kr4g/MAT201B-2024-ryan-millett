@@ -1,37 +1,31 @@
 // Ryan Millett
 // MAT201B-2024
 
-#include "al/app/al_App.hpp"
+#include <fstream>
+
 #include "al/app/al_DistributedApp.hpp"
 #include "al/app/al_GUIDomain.hpp"
+#include "al/graphics/al_VAOMesh.hpp"
 #include "al/math/al_Random.hpp"
 #include "al/math/al_Vec.hpp"
-#include "al/graphics/al_Shapes.hpp"
-#include "al/math/al_Functions.hpp"
-
-#include "al_ext/statedistribution/al_CuttleboneDomain.hpp"
 #include "al_ext/statedistribution/al_CuttleboneStateSimulationDomain.hpp"
+#include "octree.hpp"
 
-#include "../utils/octree.cpp"
-// #include "classes/boid_4.cpp"
+constexpr int CUBE_SIZE = 20;
+constexpr int MAX_BOIDS = 5000;
+constexpr int NEIGHBOR_LIMIT = 100;
+// constexpr float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
 
-const int CUBE_SIZE = 20;
-
-const int MAX_BOIDS = 5000;
-const int NEIGHBOR_LIMIT = 100;
-// const float MAX_BOID_RADIUS = CUBE_SIZE * 0.1;
-
-const int N_PARTICLES = 1500;
+constexpr int N_PARTICLES = 1500;
 
 using namespace al;
 
 double r() { return rnd::uniformS(); }
-Vec3f randomVec3f(float scale = 1.0) {
-  return Vec3f(r(), r(), r()) * scale;
-}
+Vec3f randomVec3f(float scale = 1.0) { return Vec3f(r(), r(), r()) * scale; }
 
 struct Axes {
-  void draw(Graphics &g) {
+  void draw(Graphics& g)
+  {
     Mesh mesh(Mesh::LINES);
     // x axis
     mesh.vertex(-CUBE_SIZE, 0, 0);
@@ -55,8 +49,6 @@ struct Axes {
   }
 };
 
-string slurp(string fileName);  // forward declaration
-
 struct CommonState {
   // particles
   float pointSize;
@@ -70,23 +62,25 @@ struct CommonState {
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
-  
   Parameter timeStep{"Time Step", "", 0.75, "", 0.0333, 3.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
   Parameter bRadius{"/Boid Vision Radius", "", 0.45, 0.05, 1.5};
-  // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001, MAX_BOID_RADIUS};
+  // Parameter cohesionThresh{"/Cohesion Threshold", "", 0.96, 0.0001,
+  // MAX_BOID_RADIUS};
   Parameter cohesionForce{"/Cohesion Force", "", 0.35, 0.0, 1.0};
-  // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001, MAX_BOID_RADIUS};
+  // Parameter separationThresh{"/Separation Threshold", "", 0.75, 0.0001,
+  // MAX_BOID_RADIUS};
   Parameter separationForce{"Separation Force", "", 0.75, 0.0, 1.0};
-  // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001, MAX_BOID_RADIUS};
+  // Parameter alignmentThresh{"Alignment Threshold", "", 1.1, 0.0001,
+  // MAX_BOID_RADIUS};
   Parameter alignmentForce{"Alignment Force", "", 0.25, 0.0, 1.0};
   Parameter turnRate{"Turn Rate", "", 0.025, 0.0001, 1.0};
-  
-  std::vector<Boid> boids;    
+
+  std::vector<Boid> boids;
   std::vector<Vec3f> food;
-  vector<Vec3f> velocity;
-  vector<Vec3f> force;
-  vector<float> mass;
+  std::vector<Vec3f> velocity;
+  std::vector<Vec3f> force;
+  std::vector<float> mass;
   Octree* boidTree{nullptr};
 
   double time{0};
@@ -98,22 +92,34 @@ struct MyApp : DistributedAppWithState<CommonState> {
   double initDist;
 
   Axes axes;
-  // Mesh predMesh;
-  Mesh preyMeshMale;
-  Mesh preyMeshFemale;
-  // Mesh boidMesh;
-  Mesh foodMesh;
-  // Mesh lineMesh{Mesh::LINES};
+  // VAOMesh predMesh;
+  VAOMesh preyMeshMale;
+  VAOMesh preyMeshFemale;
+  // VAOMesh boidMesh;
+  VAOMesh foodMesh;
+  // VAOMesh lineMesh{Mesh::LINES};
 
   // Nav point;
 
   ShaderProgram pointShader;
 
-  void onCreate() override {
+  std::string slurp(std::string fileName)
+  {
+    std::fstream file(fileName);
+    std::string returnValue = "";
+    while (file.good()) {
+      std::string line;
+      getline(file, line);
+      returnValue += line + "\n";
+    }
+    return returnValue;
+  }
+
+  void onCreate() override
+  {
     pointShader.compile(slurp("../point-vertex.glsl"),
                         slurp("../point-fragment.glsl"),
                         slurp("../point-geometry.glsl"));
-
 
     // place the camera so that we can see the axes
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
@@ -130,30 +136,34 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     // Male Prey Body
     preyMeshMale.primitive(Mesh::TRIANGLE_FAN);
-		preyMeshMale.vertex(0, 0, -3);        // Nose
-		preyMeshMale.color(0, 0.5, 1.0);
-		preyMeshMale.vertex(0, 1, 0);         // Top center edge ("back")
-		preyMeshMale.color(0.45, 0.17, 0.28);
-		preyMeshMale.vertex(-3, -1, 0);       // Left edge
-		preyMeshMale.color(0, 0.15, 0.7);
-		preyMeshMale.vertex(3, -1, 0);        // Right edge
-		preyMeshMale.color(0.08, 0.08, 0.60);
-		preyMeshMale.vertex(0, 1, 0);         // Top center edge, closing the fan
-		preyMeshMale.color(0.45, 0.17, 0.28);
+    preyMeshMale.vertex(0, 0, -3);  // Nose
+    preyMeshMale.color(0, 0.5, 1.0);
+    preyMeshMale.vertex(0, 1, 0);  // Top center edge ("back")
+    preyMeshMale.color(0.45, 0.17, 0.28);
+    preyMeshMale.vertex(-3, -1, 0);  // Left edge
+    preyMeshMale.color(0, 0.15, 0.7);
+    preyMeshMale.vertex(3, -1, 0);  // Right edge
+    preyMeshMale.color(0.08, 0.08, 0.60);
+    preyMeshMale.vertex(0, 1, 0);  // Top center edge, closing the fan
+    preyMeshMale.color(0.45, 0.17, 0.28);
+
+    preyMeshMale.update();
 
     // Female Prey Body
     preyMeshFemale.primitive(Mesh::TRIANGLE_FAN);
-		preyMeshFemale.vertex(0, 0, -5);      // Nose
-		preyMeshFemale.color(0.6, 1.0, 0.2);
-		preyMeshFemale.vertex(0, 0.5, 0);     // Top center edge ("back")
-		preyMeshFemale.color(0.2, 0.7, 0.1);
-		preyMeshFemale.vertex(-1, 0, 0);      // Left edge
-		preyMeshFemale.color(0.3, 0.8, 0.2);
-		preyMeshFemale.vertex(1, 0, 0);       // Right edge
-		preyMeshFemale.color(0.3, 0.8, 0.2);
-		preyMeshFemale.vertex(0, 0.5, 0);     // Top center edge, closing the fan
-		preyMeshFemale.color(0.2, 0.7, 0.1);
-    
+    preyMeshFemale.vertex(0, 0, -5);  // Nose
+    preyMeshFemale.color(0.6, 1.0, 0.2);
+    preyMeshFemale.vertex(0, 0.5, 0);  // Top center edge ("back")
+    preyMeshFemale.color(0.2, 0.7, 0.1);
+    preyMeshFemale.vertex(-1, 0, 0);  // Left edge
+    preyMeshFemale.color(0.3, 0.8, 0.2);
+    preyMeshFemale.vertex(1, 0, 0);  // Right edge
+    preyMeshFemale.color(0.3, 0.8, 0.2);
+    preyMeshFemale.vertex(0, 0.5, 0);  // Top center edge, closing the fan
+    preyMeshFemale.color(0.2, 0.7, 0.1);
+
+    preyMeshFemale.update();
+
     // setUp(); // init boids
 
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
@@ -161,15 +171,15 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
 
-      boids.clear();
-      for (int i = 0; i < MAX_BOIDS; ++i) {
-        Boid b;
-        randomize(b.bNav);
-        state().boid[i] = b.bNav.pos();
-        boids.push_back(b);
-      }
-      for (int i = 0; i < N_PARTICLES; ++i) {
-      }
+    boids.clear();
+    for (int i = 0; i < MAX_BOIDS; ++i) {
+      Boid b;
+      randomize(b.bNav);
+      state().boid[i] = b.bNav.pos();
+      boids.push_back(b);
+    }
+    for (int i = 0; i < N_PARTICLES; ++i) {
+    }
 
     if (isPrimary()) {
     }
@@ -184,27 +194,32 @@ struct MyApp : DistributedAppWithState<CommonState> {
       // using a simplified volume/size relationship
       foodMesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
     }
-  }  
-  
-  void setUp() {         
-      boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
-      boids.clear();
-      for (int i = 0; i < MAX_BOIDS; ++i) {
-        Boid b;
-        randomize(b.bNav);
-        state().boid[i] = b.bNav.pos();
-        boids.push_back(b);
-      }
+
+    foodMesh.update();
   }
-  
-  void randomize(Nav& boidNav) {
-    boidNav.pos(randomVec3f(CUBE_SIZE*0.95));
+
+  void setUp()
+  {
+    boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
+    boids.clear();
+    for (int i = 0; i < MAX_BOIDS; ++i) {
+      Boid b;
+      randomize(b.bNav);
+      state().boid[i] = b.bNav.pos();
+      boids.push_back(b);
+    }
+  }
+
+  void randomize(Nav& boidNav)
+  {
+    boidNav.pos(randomVec3f(CUBE_SIZE * 0.95));
     boidNav.quat().set(r(), r(), r(), r()).normalize();
     // boidNav.faceToward(randomVec3f(CUBE_SIZE), 0.5);
   }
-  
+
   bool freeze = false;
-  void onAnimate(double dt) override {
+  void onAnimate(double dt) override
+  {
     // std::cout << nav().pos() << std::endl;
     if (isPrimary()) {
       if (freeze) return;
@@ -221,7 +236,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
         boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
 
-        b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), separationForce.get(), turnRate.get());
+        b.boidForces(boids, alignmentForce.get(), cohesionForce.get(),
+                     separationForce.get(), turnRate.get());
         b.updatePosition(dt);
 
         state().boid[i].set(b.bNav);
@@ -230,17 +246,18 @@ struct MyApp : DistributedAppWithState<CommonState> {
       boidCenterOfMass /= boids.size();
       nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
       state().pose = nav();
-      
+
       for (int i = 0; i < boids.size(); i++) {
         for (int j = 0; j < NEIGHBOR_LIMIT; j++) {
           state().i_boids[i][j] = -1;
         }
-        for (int j = 0; j < boids[i].i_boids.size() && j < NEIGHBOR_LIMIT; j++) {
+        for (int j = 0; j < boids[i].i_boids.size() && j < NEIGHBOR_LIMIT;
+             j++) {
           state().i_boids[i][j] = boids[i].i_boids[j];
         }
       }
-
-    } else {
+    }
+    else {
       nav().set(state().pose);
 
       int i = 0;
@@ -257,12 +274,13 @@ struct MyApp : DistributedAppWithState<CommonState> {
           boids[i].i_boids.push_back(n);
         }
       }
-    
+
       // cout << boids[0].i_boids.size() << endl;
     }
   }
 
-  bool onKeyDown(Keyboard const& k) override {
+  bool onKeyDown(Keyboard const& k) override
+  {
     switch (k.key()) {
       case ' ':
         // reset the simulation
@@ -272,7 +290,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
     return true;
   }
 
-  void onDraw(Graphics& g) override {
+  void onDraw(Graphics& g) override
+  {
     // graphics / drawing settings
     g.clear(0);
     g.meshColor();
@@ -287,12 +306,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.translate(a.pos());
         g.rotate(a.quat());
         g.scale(
-          // (i % 11 != 0) ? 0.01 : 0.005
-          (i % 11 != 0) ? 0.03 : 0.02
-        );
-        g.draw(
-          (i % 11 != 0) ? preyMeshMale : preyMeshFemale
-        );
+            // (i % 11 != 0) ? 0.01 : 0.005
+            (i % 11 != 0) ? 0.03 : 0.02);
+        g.draw((i % 11 != 0) ? preyMeshMale : preyMeshFemale);
         g.popMatrix();
       }
       Mesh m{Mesh::LINES};
@@ -318,10 +334,11 @@ struct MyApp : DistributedAppWithState<CommonState> {
     // g.draw(lineMesh);
   }
 
-  void onInit() override {
+  void onInit() override
+  {
     auto cuttleboneDomain =
         CuttleboneStateSimulationDomain<CommonState>::enableCuttlebone(this);
-    
+
     if (!cuttleboneDomain) {
       std::cerr << "ERROR: Could not start Cuttlebone. Quitting." << std::endl;
       quit();
@@ -329,7 +346,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     if (isPrimary()) {
       auto guiDomain = GUIDomain::enableGUI(defaultWindowDomain());
-      auto &gui = guiDomain->newGUI();
+      auto& gui = guiDomain->newGUI();
       gui.add(timeStep);
       gui.add(pointSize);
       // gui.add(cohesionThresh);
@@ -344,19 +361,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
   }
 };
 
-int main() {
+int main()
+{
   MyApp app;
   app.configureAudio(48000, 512, 2, 0);
   app.start();
-}
-
-string slurp(string fileName) {
-  fstream file(fileName);
-  string returnValue = "";
-  while (file.good()) {
-    string line;
-    getline(file, line);
-    returnValue += line + "\n";
-  }
-  return returnValue;
 }
