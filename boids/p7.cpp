@@ -307,7 +307,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       boidTree->build(boids);
       foodTree->build(food);
 
-      Vec3d boidCenterOfMass(0, 0, 0);
+      // Vec3d boidCenterOfMass(0, 0, 0);
       int i = 0;
       for (auto& b : boids) {
         b.handleBoundary(CUBE_SIZE);
@@ -328,7 +328,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         i++;
       }
       // boidCenterOfMass /= boids.size();
-      nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
+      nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0), 0.2);
       state().pose = nav();
 
       for (int i = 0; i < boids.size(); i++) {
@@ -411,7 +411,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         
         g.popMatrix();
       }
-      Mesh m{Mesh::LINES};
+      Mesh m{Mesh::LINES}; // these are the "target" lines between boids and their targets
       
       if (b.type == BoidType::PREDATOR) {
         if (b.targetCluster.mag() > 0.001f) {
@@ -425,7 +425,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
           m.vertex(b.bNav.pos());
           m.vertex(b.targetFood);
           
-          // Use darker, more transparent version of body color
           if (b.type == BoidType::SMALL_PREY) {
             m.color(0.15, 0.4, 0.05);  // Darker green
             m.color(0.15, 0.4, 0.05);
