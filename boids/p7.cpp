@@ -15,7 +15,7 @@ constexpr int CUBE_SIZE = 20;
 constexpr int MAX_BOIDS = 1500;
 constexpr int NEIGHBOR_LIMIT = 100;
 
-constexpr int N_FOOD_PARTICLES = 150;
+constexpr int N_FOOD_PARTICLES = 250;
 
 using namespace al;
 
@@ -60,7 +60,7 @@ struct CommonState {
 struct MyApp : DistributedAppWithState<CommonState> {
   Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 3.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 5.0, 1.0, 8.0};
+  Parameter bRadius{"/Boid Vision Radius", "", 4.0, 1.0, 8.0};
   Parameter predatorVision{"/Predator Vision Radius", "", 8.0, 4.0, 15.0};
   Parameter cohesionForce{"/Cohesion Force", "", 1.3, 0.0, 3.0};
   Parameter separationForce{"Separation Force", "", 1.7, 0.0, 3.0};
@@ -293,7 +293,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       time += dt;
 
       foodRefresh += dt;
-      if (foodRefresh > 45.0) {
+      if (foodRefresh > 20.0) {
         for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
           if (rnd::uniform() < 0.3) {
             Vec3f newPos = randomVec3f(CUBE_SIZE * 0.9);
@@ -319,39 +319,10 @@ struct MyApp : DistributedAppWithState<CommonState> {
           boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
         }
 
+        float visionRadius = (b.type == BoidType::PREDATOR) ? predatorVision.get() : bRadius.get();
         b.boidForces(boids, food, alignmentForce.get(), cohesionForce.get(), 
-                     separationForce.get());
+                     separationForce.get(), CUBE_SIZE, visionRadius);
         
-        if (b.type != BoidType::PREDATOR && !food.empty()) {
-          float hungerBasedAttraction = b.getFoodAttractionStrength(0.5f);
-          
-          if (hungerBasedAttraction > 0.01f) {
-            std::vector<int> nearbyFood;
-            foodTree->queryRegion(b.bNav.pos(), Vec3f(6.0f), nearbyFood);
-            
-            if (!nearbyFood.empty()) {
-              Vec3f closestFood = food[nearbyFood[0]];
-              float minDist = al::dist(b.bNav.pos(), food[nearbyFood[0]]);
-              int closestIdx = nearbyFood[0];
-              
-              for (int j : nearbyFood) {
-                float d = al::dist(b.bNav.pos(), food[j]);
-                if (d < minDist) {
-                  minDist = d;
-                  closestFood = food[j];
-                  closestIdx = j;
-                }
-              }
-              
-              if (minDist < 3.0f) {
-                b.hunger = 0.0f;
-              } else {
-                b.seek(closestFood, 0.4 * hungerBasedAttraction);
-              }
-            }
-          }
-        }
-
         b.updatePosition(dt, 0.67);
         state().boid[i].set(b.bNav);
         i++;
@@ -450,6 +421,12 @@ struct MyApp : DistributedAppWithState<CommonState> {
           m.color(0.5, 0.05, 0.05);
         }
       } else {
+        if (b.foragingMode && b.targetFood.mag() > 0.001f) {
+          m.vertex(b.bNav.pos());
+          m.color(0.25, 0.25, 0.25);
+          m.vertex(b.targetFood);
+          m.color(0.25, 0.25, 0.25);
+        }
         // for (int j : b.i_boids) {
         //   if (i < j && j < boids.size() && boids[j].type != BoidType::PREDATOR) {
         //     m.vertex(b.bNav.pos());

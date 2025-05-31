@@ -27,9 +27,11 @@ class Boid {
   bool huntingMode{false};
   bool panicMode{false};
   bool beingHunted{false};
+  bool foragingMode{false};
   float huntingThreshold{0.7f};
   Vec3f targetCluster{0, 0, 0};
   Vec3f wanderTarget{0, 0, 0};
+  Vec3f targetFood{0, 0, 0};
 
   std::vector<int> i_boids;
 
@@ -37,17 +39,17 @@ class Boid {
     switch(type) {
       case BoidType::SMALL_PREY:
         turnRateFactor = 0.15f;
-        maxSpeed = baseSpeed = 1.5f;
+        maxSpeed = baseSpeed = 2.4f;
         hungerRate = 0.8f + (rnd::uniformS() * 0.4f);
         break;
       case BoidType::LARGE_PREY:
         turnRateFactor = 0.08f;
-        maxSpeed = baseSpeed = 1.0f;
+        maxSpeed = baseSpeed = 2.0f;
         hungerRate = 0.6f + (rnd::uniformS() * 0.4f);
         break;
       case BoidType::PREDATOR:
         turnRateFactor = 0.1f;
-        maxSpeed = baseSpeed = 1.2f;
+        maxSpeed = baseSpeed = 2.2f;
         hungerRate = 1.0f + (rnd::uniformS() * 0.8f);
         break;
     }
@@ -96,89 +98,7 @@ class Boid {
     }
   }
 
-  Vec3f findNearbyPreyCenter(const std::vector<Boid>& boids, const std::vector<int>& nearbyBoids, int minPreyCount = 6) {
-    Vec3f centerOfMass(0, 0, 0);
-    int preyCount = 0;
-    
-    for (int i : nearbyBoids) {
-      if (boids[i].type != BoidType::PREDATOR) {
-        centerOfMass += Vec3f(boids[i].bNav.pos());
-        preyCount++;
-      }
-    }
-    
-    if (preyCount >= minPreyCount) {
-      return centerOfMass / preyCount;
-    }
-    
-    return Vec3f(0, 0, 0);
-  }
-
-  void checkIfBeingHunted(const std::vector<Boid>& boids) {
-    beingHunted = false;
-    for (int i : i_boids) {
-      if (boids[i].type == BoidType::PREDATOR && boids[i].huntingMode) {
-        float distToTarget = al::dist(boids[i].targetCluster, Vec3f(bNav.pos()));
-        if (distToTarget < 8.0f) {
-          beingHunted = true;
-          break;
-        }
-      }
-    }
-  }
-
-  void avoidPredators(const std::vector<Boid>& boids, float avoidRadius = 12.0f) {
-    Vec3f avoidance(0, 0, 0);
-    int predatorCount = 0;
-    float minDistance = avoidRadius;
-    
-    for (int i : i_boids) {
-      if (boids[i].type == BoidType::PREDATOR) {
-        Vec3f diff = Vec3f(bNav.pos()) - Vec3f(boids[i].bNav.pos());
-        float distance = diff.mag();
-        
-        if (distance < avoidRadius && distance > 0.001f) {
-          minDistance = std::min(minDistance, distance);
-          diff.normalize();
-          float urgency = 1.0f - (distance / avoidRadius);
-          
-          if (beingHunted) {
-            urgency *= 1.8f;
-          }
-          
-          diff *= urgency * urgency;
-          avoidance += diff;
-          predatorCount++;
-        }
-      }
-    }
-    
-    if (predatorCount > 0) {
-      panicMode = true;
-      hunger = 0.0f;
-      avoidance /= predatorCount;
-      avoidance.normalize();
-      
-      float panicLevel = 1.0f - (minDistance / avoidRadius);
-      panicLevel = panicLevel * panicLevel;
-      
-      if (beingHunted) {
-        panicLevel *= 1.5f;
-        maxSpeed = baseSpeed * (2.0f + panicLevel * 1.0f);
-      } else {
-        maxSpeed = baseSpeed * (1.6f + panicLevel * 0.8f);
-      }
-      
-      Vec3f currentPos = Vec3f(bNav.pos());
-      float panicTurnRate = turnRateFactor * (beingHunted ? 1.8f : 1.2f) * (1.0f + panicLevel * 0.8f);
-      bNav.faceToward(currentPos + avoidance * (beingHunted ? 8.0f : 6.0f), bNav.uu(), panicTurnRate);
-    } else {
-      panicMode = false;
-      maxSpeed = baseSpeed;
-    }
-  }
-
-  Vec3f generateWanderTarget(float cubeSize) {
+  Vec3f newWanderTarget(float cubeSize) {
     float range = cubeSize * 0.7f;
     return Vec3f(
       (rnd::uniformS() * range),
@@ -192,15 +112,34 @@ class Boid {
     hunger = std::min(hunger, 1.0f);
   }
 
-  float getFoodAttractionStrength(float baseFoodAttraction) {
+  void updateSpeed() {
+    if (type == BoidType::PREDATOR) return;
+    
+    float minSpeed, maxSpeed;
+    if (type == BoidType::LARGE_PREY) {
+      minSpeed = 1.5f;
+      maxSpeed = 2.0f;
+    } else {
+      minSpeed = 1.8f;
+      maxSpeed = 2.4f;
+    }
+    
+    baseSpeed = minSpeed + (maxSpeed - minSpeed) * hunger;
+    if (!panicMode && !huntingMode) {
+      this->maxSpeed = baseSpeed;
+    }
+  }
+
+  float hungerLevel(float baseFoodAttraction) {
     if (type == BoidType::PREDATOR) return 0.0f;
     if (hunger < 0.1f) return 0.0f;
     return baseFoodAttraction * hunger;
   }
 
-  bool isNearFood(const std::vector<Vec3f>& food, float criticalDistance = 5.0f) {
+  bool nearFood(const std::vector<Vec3f>& food, float criticalDistance = 5.0f) {
     if (type == BoidType::PREDATOR) return false;
     Vec3f myPos = Vec3f(bNav.pos());
+    
     for (const auto& foodPos : food) {
       if (al::dist(myPos, foodPos) < criticalDistance) {
         return true;
@@ -209,17 +148,178 @@ class Boid {
     return false;
   }
 
+  void checkFoodConsumption(const std::vector<Vec3f>& food, float consumeDistance) {
+    if (type == BoidType::PREDATOR) {
+      targetFood = Vec3f(0, 0, 0);
+      return;
+    }
+    
+    Vec3f myPos = Vec3f(bNav.pos());
+    targetFood = Vec3f(0, 0, 0);
+    
+    for (const auto& foodPos : food) {
+      if (al::dist(myPos, foodPos) < consumeDistance) {
+        targetFood = foodPos;
+        break;
+      }
+    }
+  }
+
+  void setFoodTarget(const Vec3f& foodPos) {
+    targetFood = foodPos;
+  }
+
+  void clearFoodTarget() {
+    targetFood = Vec3f(0, 0, 0);
+  }
+
   void boidForces(const std::vector<Boid>& boids, const std::vector<Vec3f>& food,
                   float alignmentForce = 0.5, float cohesionForce = 0.5, 
-                  float separationForce = 0.5)
+                  float separationForce = 0.5, float cubeSize = 20.0f, 
+                  float visionRadius = 5.0f)
   {
     if (this->i_boids.empty()) return;
 
     updateHunger(1.0f);
+    updateSpeed();
+
+    if (type != BoidType::PREDATOR && hunger > 0.3f && !food.empty()) {
+      Vec3f nearestFood(0, 0, 0);
+      float minFoodDist = visionRadius * 0.25f;
+      bool foundFood = false;
+      
+      Vec3f myPos = Vec3f(bNav.pos());
+      for (const auto& foodPos : food) {
+        float dist = al::dist(myPos, foodPos);
+        if (dist < minFoodDist) {
+          minFoodDist = dist;
+          nearestFood = foodPos;
+          foundFood = true;
+        }
+      }
+      
+      if (foundFood) {
+        foragingMode = true;
+        targetFood = nearestFood;
+        maxSpeed = baseSpeed * 1.3f;
+        seek(targetFood, 0.4);
+        
+        if (minFoodDist < visionRadius * 0.1f) {
+          hunger -= 0.4f;
+          hunger = std::max(hunger, 0.0f);
+          if (hunger < 0.2f) {
+            foragingMode = false;
+            targetFood = Vec3f(0, 0, 0);
+          }
+        }
+      } else if (!panicMode) {
+        foragingMode = false;
+        targetFood = Vec3f(0, 0, 0);
+      }
+    } else if (type != BoidType::PREDATOR) {
+      foragingMode = false;
+      targetFood = Vec3f(0, 0, 0);
+    }
+
+    Vec3f myPos = Vec3f(bNav.pos());
+    Vec3f myVel = bNav.uf();
+
+    Vec3f predatorAvoidance(0, 0, 0);
+    Vec3f preyCenter(0, 0, 0);
+    Vec3f separationSum(0, 0, 0);
+    Vec3f alignmentSum(0, 0, 0);
+    Vec3f cohesionSum(0, 0, 0);
+    Vec3f predatorSteering(0, 0, 0);
+    
+    int predatorCount = 0;
+    int preyCount = 0;
+    int separationCount = 0;
+    int alignmentCount = 0;
+    int cohesionCount = 0;
+    int nearbyPredators = 0;
+    
+    bool hunted = false;
+    float predatorAvoidRadius = visionRadius * 2.4f;
+    float minPredatorDist = predatorAvoidRadius;
+
+    for (int i : this->i_boids) {
+      const Boid& neighbor = boids[i];
+      Vec3f neighborPos = Vec3f(neighbor.bNav.pos());
+      Vec3f diff = myPos - neighborPos;
+      float distance = diff.mag();
+      
+      if (neighbor.type == BoidType::PREDATOR) {
+        if (type != BoidType::PREDATOR) {
+          if (distance < predatorAvoidRadius && distance > 0.001f) {
+            minPredatorDist = std::min(minPredatorDist, distance);
+            diff.normalize();
+            float urgency = 1.0f - (distance / predatorAvoidRadius);
+            
+            if (beingHunted) {
+              urgency *= 1.8f;
+            }
+            
+            diff *= urgency * urgency;
+            predatorAvoidance += diff;
+            predatorCount++;
+          }
+          
+          if (!neighbor.huntingMode && distance < visionRadius * 1.5f && distance > 0.001f) {
+            Vec3f gentleDiff = diff;
+            gentleDiff.normalize();
+            float gentleUrgency = 1.0f - (distance / (visionRadius * 1.5f));
+            gentleDiff *= gentleUrgency * 0.3f;
+            predatorSteering += gentleDiff;
+            nearbyPredators++;
+          }
+          
+          if (neighbor.huntingMode) {
+            float distToTarget = al::dist(neighbor.targetCluster, myPos);
+            if (distToTarget < visionRadius * 1.6f) {
+              hunted = true;
+            }
+          }
+        } else if (&neighbor != this) {
+          float predatorSpacing = visionRadius * 5.0f;
+          if (distance < predatorSpacing && distance > 0.001f) {
+            diff.normalize();
+            diff /= (distance * 0.3f);
+            predatorAvoidance += diff;
+            predatorCount++;
+          }
+        }
+      } else {
+        if (type == BoidType::PREDATOR) {
+          preyCenter += neighborPos;
+          preyCount++;
+        } else if (distance > 0.001f) {
+          if (distance < visionRadius * 0.4f) {
+            diff.normalize();
+            diff /= distance;
+            separationSum += diff;
+            separationCount++;
+          }
+          
+          if (distance < visionRadius * 0.8f) {
+            alignmentSum += neighbor.bNav.uf();
+            alignmentCount++;
+          }
+          
+          if (distance < visionRadius) {
+            cohesionSum += neighborPos;
+            cohesionCount++;
+          }
+        }
+      }
+    }
 
     if (type == BoidType::PREDATOR) {
       if (hunger > huntingThreshold) {
-        Vec3f clusterCenter = findNearbyPreyCenter(boids, i_boids, 6);
+        Vec3f clusterCenter(0, 0, 0);
+        if (preyCount >= 6) {
+          clusterCenter = preyCenter / preyCount;
+        }
+        
         if (clusterCenter.mag() > 0.001f) {
           huntingMode = true;
           targetCluster = clusterCenter;
@@ -238,8 +338,9 @@ class Boid {
           huntingMode = false;
           maxSpeed = baseSpeed * 0.8f;
           
-          if (wanderTarget.mag() < 0.001f || al::dist(bNav.pos(), wanderTarget) < 5.0f) {
-            wanderTarget = generateWanderTarget(30.0f);
+          float wanderDistance = cubeSize * 0.95f;
+          if (wanderTarget.mag() < 0.001f || al::dist(bNav.pos(), wanderTarget) < wanderDistance) {
+            wanderTarget = newWanderTarget(cubeSize);
           }
           seek(wanderTarget, 0.05);
         }
@@ -248,79 +349,46 @@ class Boid {
         targetCluster = Vec3f(0, 0, 0);
         maxSpeed = baseSpeed * 0.6f;
         
-        if (wanderTarget.mag() < 0.001f || al::dist(bNav.pos(), wanderTarget) < 5.0f) {
-          wanderTarget = generateWanderTarget(30.0f);
+        float wanderDistance = cubeSize * 0.95f;
+        if (wanderTarget.mag() < 0.001f || al::dist(bNav.pos(), wanderTarget) < wanderDistance) {
+          wanderTarget = newWanderTarget(cubeSize);
         }
         seek(wanderTarget, 0.03);
       }
       
-      Vec3f predatorAvoidance(0, 0, 0);
-      int predatorCount = 0;
-      for (int i : i_boids) {
-        if (boids[i].type == BoidType::PREDATOR && &boids[i] != this) {
-          Vec3f diff = Vec3f(bNav.pos()) - Vec3f(boids[i].bNav.pos());
-          float distance = diff.mag();
-          if (distance < 25.0f && distance > 0.001f) {
-            diff.normalize();
-            diff /= (distance * 0.3f);
-            predatorAvoidance += diff;
-            predatorCount++;
-          }
-        }
-      }
       if (predatorCount > 0) {
         predatorAvoidance /= predatorCount;
         predatorAvoidance.normalize();
-        Vec3f currentPos = Vec3f(bNav.pos());
-        bNav.faceToward(currentPos + predatorAvoidance * 3.0f, bNav.uu(), 0.6f * turnRateFactor);
+        bNav.faceToward(myPos + predatorAvoidance * visionRadius * 0.6f, bNav.uu(), 0.6f * turnRateFactor);
       }
       return;
     }
 
-    checkIfBeingHunted(boids);
-    avoidPredators(boids);
+    beingHunted = hunted;
     
-    if (panicMode) {
-      return;
-    }
-
-    Vec3f separationSum(0, 0, 0);
-    Vec3f alignmentSum(0, 0, 0);
-    Vec3f cohesionSum(0, 0, 0);
-    
-    Vec3f myPos = this->bNav.pos();
-    Vec3f myVel = this->bNav.uf();
-    
-    int separationCount = 0;
-    int alignmentCount = 0;
-    int cohesionCount = 0;
-
-    for (int i : this->i_boids) {
-      if (boids[i].type == BoidType::PREDATOR) continue;
+    if (predatorCount > 0) {
+      panicMode = true;
+      hunger = 0.0f;
+      predatorAvoidance /= predatorCount;
+      predatorAvoidance.normalize();
       
-      const Boid& neighbor = boids[i];
-      Vec3f neighborPos = neighbor.bNav.pos();
-      Vec3f diff = myPos - neighborPos;
-      float distance = diff.mag();
+      float panicLevel = 1.0f - (minPredatorDist / predatorAvoidRadius);
+      panicLevel = panicLevel * panicLevel;
       
-      if (distance > 0.001f) {
-        if (distance < 2.0f) {
-          diff.normalize();
-          diff /= distance;
-          separationSum += diff;
-          separationCount++;
-        }
-        
-        if (distance < 4.0f) {
-          alignmentSum += neighbor.bNav.uf();
-          alignmentCount++;
-        }
-        
-        if (distance < 5.0f) {
-          cohesionSum += neighborPos;
-          cohesionCount++;
-        }
+      if (beingHunted) {
+        panicLevel *= 1.5f;
+        maxSpeed = baseSpeed * (2.0f + panicLevel * 1.0f);
+      } else {
+        maxSpeed = baseSpeed * (1.6f + panicLevel * 0.8f);
       }
+      
+      float escapeDistance = visionRadius * (beingHunted ? 1.6f : 1.2f);
+      float panicTurnRate = turnRateFactor * (beingHunted ? 1.8f : 1.2f) * (1.0f + panicLevel * 0.8f);
+      bNav.faceToward(myPos + predatorAvoidance * escapeDistance, bNav.uu(), panicTurnRate);
+      return;
+    } else {
+      panicMode = false;
+      maxSpeed = baseSpeed;
     }
 
     Vec3f steering(0, 0, 0);
@@ -341,13 +409,18 @@ class Boid {
       Vec3f cohesionDir = (cohesionSum - myPos).normalize();
       steering += cohesionDir * cohesionForce;
     }
+    
+    if (nearbyPredators > 0) {
+      predatorSteering /= nearbyPredators;
+      steering += predatorSteering * 0.6f;
+    }
 
     if (steering.mag() > 0.001f) {
       steering.normalize();
       Vec3f newDirection = myVel + steering * turnRateFactor;
       newDirection.normalize();
       float effectiveTurnRate = turnRateFactor;
-      if (isNearFood(food, 5.0f)) {
+      if (foragingMode) {
         effectiveTurnRate *= 2.5f;
       }
       this->bNav.faceToward(myPos + newDirection, this->bNav.uu(), effectiveTurnRate);
@@ -368,3 +441,5 @@ class Boid {
     bNav.step(dt);
   }
 };
+
+
