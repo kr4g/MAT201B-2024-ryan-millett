@@ -27,6 +27,7 @@ class Boid {
 
   float minEdgeProximity{1.5f};
   float turnRateFactor{0.15f};
+  float maxSpeed{1.5f};
 
   std::vector<int> i_boids;
 
@@ -87,11 +88,11 @@ class Boid {
         float proximityFactor = 1.0 - (dist / avoidanceRadius);
         biasedForward = forward + awayFromOrigin * theta * proximityFactor;
         biasedForward.normalize();
-        bNav.faceToward(pos + biasedForward, 0.005);
+        bNav.faceToward(pos + biasedForward, bNav.uu(), 0.005);
         if (dist < avoidanceRadius) {
           turnRate = turnRateFactor * (1.0 - dist / avoidanceRadius);
           biasedForward = forward + awayFromOrigin * theta * proximityFactor;
-          bNav.faceToward(bNav.pos() + biasedForward, turnRate);
+          bNav.faceToward(bNav.pos() + biasedForward, bNav.uu(), turnRate);
         }
       }
     }
@@ -103,9 +104,9 @@ class Boid {
   {
     if (this->i_boids.empty()) return;
 
-    Vec3f separationSteer(0, 0, 0);
-    Vec3f alignmentSteer(0, 0, 0);
-    Vec3f cohesionSteer(0, 0, 0);
+    Vec3f separationSum(0, 0, 0);
+    Vec3f alignmentSum(0, 0, 0);
+    Vec3f cohesionSum(0, 0, 0);
     
     Vec3f myPos = this->bNav.pos();
     Vec3f myVel = this->bNav.uf();
@@ -113,10 +114,6 @@ class Boid {
     int separationCount = 0;
     int alignmentCount = 0;
     int cohesionCount = 0;
-    
-    float separationRadius = 1.5f;
-    float alignmentRadius = 2.5f;
-    float cohesionRadius = 3.0f;
 
     for (int i : this->i_boids) {
       const Boid& neighbor = boids[i];
@@ -125,62 +122,49 @@ class Boid {
       float distance = diff.mag();
       
       if (distance > 0.001f) {
-        if (distance < separationRadius) {
+        if (distance < 2.0f) {
           diff.normalize();
           diff /= distance;
-          separationSteer += diff;
+          separationSum += diff;
           separationCount++;
         }
         
-        if (distance < alignmentRadius) {
-          alignmentSteer += neighbor.bNav.uf();
+        if (distance < 4.0f) {
+          alignmentSum += neighbor.bNav.uf();
           alignmentCount++;
         }
         
-        if (distance < cohesionRadius) {
-          cohesionSteer += neighborPos;
+        if (distance < 5.0f) {
+          cohesionSum += neighborPos;
           cohesionCount++;
         }
       }
     }
 
-    Vec3f steer(0, 0, 0);
+    Vec3f steering(0, 0, 0);
     
     if (separationCount > 0) {
-      separationSteer /= separationCount;
-      if (separationSteer.mag() > 0) {
-        separationSteer.normalize();
-        separationSteer -= myVel;
-        steer += separationSteer * separationForce;
-      }
+      separationSum /= separationCount;
+      steering += separationSum * separationForce;
     }
     
     if (alignmentCount > 0) {
-      alignmentSteer /= alignmentCount;
-      if (alignmentSteer.mag() > 0) {
-        alignmentSteer.normalize();
-        alignmentSteer -= myVel;
-        steer += alignmentSteer * alignmentForce;
-      }
+      alignmentSum /= alignmentCount;
+      alignmentSum.normalize();
+      steering += (alignmentSum - myVel) * alignmentForce;
     }
     
     if (cohesionCount > 0) {
-      cohesionSteer /= cohesionCount;
-      cohesionSteer -= myPos;
-      if (cohesionSteer.mag() > 0) {
-        cohesionSteer.normalize();
-        cohesionSteer -= myVel;
-        steer += cohesionSteer * cohesionForce;
-      }
+      cohesionSum /= cohesionCount;
+      Vec3f cohesionDir = (cohesionSum - myPos).normalize();
+      steering += cohesionDir * cohesionForce;
     }
 
-    if (steer.mag() > 0) {
-      steer.normalize();
-      Vec3f newDirection = myVel + steer * turnRate;
-      if (newDirection.mag() > 0) {
-        newDirection.normalize();
-        this->bNav.faceToward(myPos + newDirection, this->bNav.uu(), turnRate * turnRateFactor);
-      }
+    if (steering.mag() > 0.001f) {
+      steering.normalize();
+      Vec3f newDirection = myVel + steering * turnRate;
+      newDirection.normalize();
+      this->bNav.faceToward(myPos + newDirection, this->bNav.uu(), turnRate * turnRateFactor);
     }
   }
 
@@ -191,9 +175,10 @@ class Boid {
     bNav.faceToward(target, bNav.uu(), amt);
   }
 
-  void updatePosition(double dt)
+  void updatePosition(double dt, double amt)
   {
-    bNav.moveF(0.67);
+    amt = std::min(amt * maxSpeed, 2.0);
+    bNav.moveF(amt);
     bNav.step(dt);
   }
 };

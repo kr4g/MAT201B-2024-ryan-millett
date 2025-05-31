@@ -15,7 +15,7 @@ constexpr int CUBE_SIZE = 40;
 constexpr int MAX_BOIDS = 1500;
 constexpr int NEIGHBOR_LIMIT = 100;
 
-constexpr int N_FOOD_PARTICLES = 25;
+constexpr int N_FOOD_PARTICLES = 250;
 
 using namespace al;
 
@@ -58,13 +58,15 @@ struct CommonState {
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
-  Parameter timeStep{"Time Step", "", 2.0, "", 0.0333, 3.0};
+  Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 3.0};
   Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 2.0, 0.05, 5.0};
-  Parameter cohesionForce{"/Cohesion Force", "", 0.15, 0.0, 1.0};
-  Parameter separationForce{"Separation Force", "", 0.45, 0.0, 1.0};
-  Parameter alignmentForce{"Alignment Force", "", 0.5, 0.0, 1.0};
-  Parameter turnRate{"Turn Rate", "", 0.33, 0.0001, 1.0};
+  Parameter bRadius{"/Boid Vision Radius", "", 2.0, 1.0, 8.0};
+  Parameter cohesionForce{"/Cohesion Force", "", 0.2, 0.0, 1.0};
+  Parameter separationForce{"Separation Force", "", 1.6, 0.0, 2.0};
+  Parameter alignmentForce{"Alignment Force", "", 0.4, 0.0, 1.0};
+  Parameter turnRate{"Turn Rate", "", 0.336, 0.01, 0.5};
+  Parameter maxSpeed{"Max Speed", "", 2.8, 0.1, 3.0};
+  Parameter foodAttraction{"Food Attraction", "", 0.32, 0.0, 1.0};
 
   std::vector<Boid> boids;
   std::vector<Vec3f> food;
@@ -83,8 +85,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
   double initDist;
 
   // Axes axes;
-  VAOMesh preyMeshMale;
-  VAOMesh preyMeshFemale;
+  VAOMesh boidMeshBig;
+  VAOMesh boidMeshSmall;
   VAOMesh foodMesh;
 
   ShaderProgram pointShader;
@@ -111,31 +113,31 @@ struct MyApp : DistributedAppWithState<CommonState> {
     nav().pos(Vec3f(5.0, 0.0, 0.0));
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
-    preyMeshMale.primitive(Mesh::TRIANGLE_FAN);
-    preyMeshMale.vertex(0, 0, -3);
-    preyMeshMale.color(0, 0.5, 1.0);
-    preyMeshMale.vertex(0, 1, 0);
-    preyMeshMale.color(0.45, 0.17, 0.28);
-    preyMeshMale.vertex(-3, -1, 0);
-    preyMeshMale.color(0, 0.15, 0.7);
-    preyMeshMale.vertex(3, -1, 0);
-    preyMeshMale.color(0.08, 0.08, 0.60);
-    preyMeshMale.vertex(0, 1, 0);
-    preyMeshMale.color(0.45, 0.17, 0.28);
-    preyMeshMale.update();
+    boidMeshBig.primitive(Mesh::TRIANGLE_FAN);
+    boidMeshBig.vertex(0, 0, -3);
+    boidMeshBig.color(0, 0.5, 1.0);
+    boidMeshBig.vertex(0, 1, 0);
+    boidMeshBig.color(0.45, 0.17, 0.28);
+    boidMeshBig.vertex(-3, -1, 0);
+    boidMeshBig.color(0, 0.15, 0.7);
+    boidMeshBig.vertex(3, -1, 0);
+    boidMeshBig.color(0.08, 0.08, 0.60);
+    boidMeshBig.vertex(0, 1, 0);
+    boidMeshBig.color(0.45, 0.17, 0.28);
+    boidMeshBig.update();
 
-    preyMeshFemale.primitive(Mesh::TRIANGLE_FAN);
-    preyMeshFemale.vertex(0, 0, -5);
-    preyMeshFemale.color(0.6, 1.0, 0.2);
-    preyMeshFemale.vertex(0, 0.5, 0);
-    preyMeshFemale.color(0.2, 0.7, 0.1);
-    preyMeshFemale.vertex(-1, 0, 0);
-    preyMeshFemale.color(0.3, 0.8, 0.2);
-    preyMeshFemale.vertex(1, 0, 0);
-    preyMeshFemale.color(0.3, 0.8, 0.2);
-    preyMeshFemale.vertex(0, 0.5, 0);
-    preyMeshFemale.color(0.2, 0.7, 0.1);
-    preyMeshFemale.update();
+    boidMeshSmall.primitive(Mesh::TRIANGLE_FAN);
+    boidMeshSmall.vertex(0, 0, -5);
+    boidMeshSmall.color(0.6, 1.0, 0.2);
+    boidMeshSmall.vertex(0, 0.5, 0);
+    boidMeshSmall.color(0.2, 0.7, 0.1);
+    boidMeshSmall.vertex(-1, 0, 0);
+    boidMeshSmall.color(0.3, 0.8, 0.2);
+    boidMeshSmall.vertex(1, 0, 0);
+    boidMeshSmall.color(0.3, 0.8, 0.2);
+    boidMeshSmall.vertex(0, 0.5, 0);
+    boidMeshSmall.color(0.2, 0.7, 0.1);
+    boidMeshSmall.update();
 
     foodMesh.primitive(Mesh::POINTS);
     for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
@@ -192,10 +194,14 @@ struct MyApp : DistributedAppWithState<CommonState> {
       dt *= timeStep.get();
       time += dt;
 
+      for (auto& b : boids) {
+        b.maxSpeed = maxSpeed.get();
+      }
+
       foodRefresh += dt;
-      if (foodRefresh > 15.0) {
+      if (foodRefresh > 45.0) {
         for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
-          if (rnd::uniform() < 0.5) {
+          if (rnd::uniform() < 0.3) {
             Vec3f newPos = randomVec3f(CUBE_SIZE * 0.9);
             food[i] = newPos;
             state().food[i] = newPos;
@@ -210,7 +216,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
       Vec3d boidCenterOfMass(0, 0, 0);
       int i = 0;
       for (auto& b : boids) {
-        boidCenterOfMass += b.bNav.pos();
         b.handleBoundary(CUBE_SIZE);
 
         boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
@@ -218,9 +223,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
         b.boidForces(boids, alignmentForce.get(), cohesionForce.get(), 
                      separationForce.get(), turnRate.get());
         
-        if (!food.empty()) {
+        if (!food.empty() && foodAttraction.get() > 0.01f) {
           std::vector<int> nearbyFood;
-          foodTree->queryRegion(b.bNav.pos(), Vec3f(5.0f), nearbyFood);
+          foodTree->queryRegion(b.bNav.pos(), Vec3f(6.0f), nearbyFood);
           
           if (!nearbyFood.empty()) {
             Vec3f closestFood = food[nearbyFood[0]];
@@ -236,21 +241,26 @@ struct MyApp : DistributedAppWithState<CommonState> {
               }
             }
             
-            if (minDist < bRadius.get()) {
+            if (minDist < 3.0f) {
               Vec3f newPos = randomVec3f(CUBE_SIZE * 0.9);
               food[closestIdx] = newPos;
               state().food[closestIdx] = newPos;
             } else {
-              b.seek(closestFood, 0.2);
+              std::vector<int> boidsNearFood;
+              boidTree->queryRegion(closestFood, Vec3f(5.0f), boidsNearFood);
+              
+              if (boidsNearFood.size() < 4) {
+                b.seek(closestFood, 0.4 * foodAttraction.get());
+              }
             }
           }
         }
 
-        b.updatePosition(dt);
+        b.updatePosition(dt, 0.67);
         state().boid[i].set(b.bNav);
         i++;
       }
-      boidCenterOfMass /= boids.size();
+      // boidCenterOfMass /= boids.size();
       nav().faceToward(boidCenterOfMass, Vec3d(0, 1, 0), 0.2);
       state().pose = nav();
 
@@ -282,17 +292,14 @@ struct MyApp : DistributedAppWithState<CommonState> {
         }
       }
     }
-    
-    // for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
-    // }
-    
-    foodMesh.reset();
+
+    // foodMesh.reset();
     foodMesh.primitive(Mesh::POINTS);
     for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
       food[i] = state().food[i];
       foodMesh.vertex(state().food[i]);
       foodMesh.color(1.0, 0.2, 0.2);
-      foodMesh.texCoord(0.5, 0.1);
+      foodMesh.texCoord(0.5, 0);
     }
     foodMesh.update();
   }
@@ -320,8 +327,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.translate(a.pos());
         g.rotate(a.quat());
         g.scale(
-            (i % 11 != 0) ? 0.08 : 0.05);
-        g.draw((i % 11 != 0) ? preyMeshMale : preyMeshFemale);
+            (i % 11 != 0) ? 0.13 : 0.08);
+        g.draw((i % 11 != 0) ? boidMeshBig : boidMeshSmall);
         g.popMatrix();
       }
       Mesh m{Mesh::LINES};
@@ -370,6 +377,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
       gui.add(alignmentForce);
       gui.add(turnRate);
       gui.add(bRadius);
+      gui.add(maxSpeed);
+      gui.add(foodAttraction);
     }
   }
 };
