@@ -423,9 +423,16 @@ struct MyApp : DistributedAppWithState<CommonState> {
       } else {
         if (b.foragingMode && b.targetFood.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
-          m.color(0.25, 0.25, 0.25);
           m.vertex(b.targetFood);
-          m.color(0.25, 0.25, 0.25);
+          
+          // Use darker, more transparent version of body color
+          if (b.type == BoidType::SMALL_PREY) {
+            m.color(0.15, 0.4, 0.05);  // Darker green
+            m.color(0.15, 0.4, 0.05);
+          } else if (b.type == BoidType::LARGE_PREY) {
+            m.color(0.0, 0.2, 0.5);    // Darker blue
+            m.color(0.0, 0.2, 0.5);
+          }
         }
         // for (int j : b.i_boids) {
         //   if (i < j && j < boids.size() && boids[j].type != BoidType::PREDATOR) {

@@ -185,7 +185,7 @@ class Boid {
 
     if (type != BoidType::PREDATOR && hunger > 0.3f && !food.empty()) {
       Vec3f nearestFood(0, 0, 0);
-      float minFoodDist = visionRadius * 0.25f;
+      float minFoodDist = visionRadius * 0.5f;
       bool foundFood = false;
       
       Vec3f myPos = Vec3f(bNav.pos());
