@@ -5,9 +5,6 @@
 #include "al/io/al_ControlNav.hpp"
 #include "al/math/al_Vec.hpp"
 
-constexpr float MAX_PREY_LIFESPAN = 300.0f;
-constexpr float MAX_PREDATOR_LIFESPAN = 100.0f;
-
 constexpr float MIN_PREY_EDGE_PROXIMITY = 0.01f;
 constexpr float MIN_PREDATOR_EDGE_PROXIMITY = 0.05f;
 
@@ -18,42 +15,40 @@ using namespace al;
 
 class Boid {
  public:
-  Nav bNav;      // Navigation object
-  Vec3d target;  // Where the boid is going
+  Nav bNav;
+  Vec3d target;
   bool lifeStatus{true};
   float frequency{5.0f};
   float attentionSpan{1.0f};
   float hunger{1.0f};
   float fear{0.0f};
-  float mutation{0.0f};
-  float mutationRate{0.0f};
-  float age{0.0f};
-  float ageRate{0.001f};
-  float lifespan;
   int meshIdx;
   int Nv;
 
-  float minEdgeProximity{1.5f};  // Minimum distance from edge to start turning
-  float turnRateFactor{0.2f};    // Factor to adjust turning rate
+  float minEdgeProximity{1.5f};
+  float turnRateFactor{0.15f};
 
   std::vector<int> i_boids;
 
   void handleBoundary(float size)
   {
-    // Vec3d bUf = bNav.uf();
-    float dist = bNav.pos().mag();
-    // float proximity = (size - dist) / size;
-    // float turnRate = turnRateFactor;
-
-    if (dist > size) {
-      bNav.faceToward(Vec3d(0, 0, 0), 1.0);
+    Vec3d pos = bNav.pos();
+    float dist = pos.mag();
+    float boundary = size * 0.85f;
+    
+    if (dist > boundary) {
+      Vec3d awayFromWall = -pos.normalized();
+      Vec3d currentDir = bNav.uf();
+      
+      float edgeProximity = (dist - boundary) / (size - boundary);
+      edgeProximity = std::min(edgeProximity, 1.0f);
+      
+      Vec3d desiredDir = currentDir * (1.0f - edgeProximity) + awayFromWall * edgeProximity;
+      desiredDir.normalize();
+      
+      float turnRate = 0.1f + edgeProximity * 0.9f;
+      bNav.faceToward(pos + desiredDir, bNav.uu(), turnRate);
     }
-
-    // if (dist < 0.1) {
-    //     bNav.faceToward(Vec3d(0,0,0), 0.9);
-    // } else if (dist < minEdgeProximity) {
-    //     bNav.faceToward(Vec3d(0,0,0), turnRateFactor*proximity);
-    // }
   }
 
   void originAvoidance(float avoidanceRadius)
@@ -66,8 +61,8 @@ class Boid {
       Vec3d awayFromOrigin = pos.normalize();
       float theta = forward.dot(awayFromOrigin);
 
-      if (theta < 0) {   // If facing towards the origin, theta is negative
-        theta = -theta;  // "degree" of facing towards the origin
+      if (theta < 0) {
+        theta = -theta;
         float proximityFactor = 1.0 - (dist / avoidanceRadius);
         float turnRate = std::min(theta * proximityFactor, 1.0f);
         Vec3d biasedForward = forward + awayFromOrigin * theta;
@@ -106,34 +101,86 @@ class Boid {
                   float cohesionForce = 0.5, float separationForce = 0.5,
                   float turnRate = 0.5)
   {
-    Vec3f averageHeading(0, 0, 0);
-    Vec3f centerOfMass(0, 0, 0);
-    Vec3f separation(0, 0, 0);
-    Vec3f averageUp(0, 0, 0);
+    if (this->i_boids.empty()) return;
+
+    Vec3f separationSteer(0, 0, 0);
+    Vec3f alignmentSteer(0, 0, 0);
+    Vec3f cohesionSteer(0, 0, 0);
+    
+    Vec3f myPos = this->bNav.pos();
+    Vec3f myVel = this->bNav.uf();
+    
+    int separationCount = 0;
+    int alignmentCount = 0;
+    int cohesionCount = 0;
+    
+    float separationRadius = 1.5f;
+    float alignmentRadius = 2.5f;
+    float cohesionRadius = 3.0f;
 
     for (int i : this->i_boids) {
-      Vec3f toNeighbor = boids[i].bNav.pos() - this->bNav.pos();
-      float dist = toNeighbor.mag();
-      averageHeading += boids[i].bNav.uf();
-      averageUp += boids[i].bNav.uu();
-      centerOfMass += boids[i].bNav.pos();
-      if (dist > 0) {
-        separation += (toNeighbor / -dist) / (dist * dist);
+      const Boid& neighbor = boids[i];
+      Vec3f neighborPos = neighbor.bNav.pos();
+      Vec3f diff = myPos - neighborPos;
+      float distance = diff.mag();
+      
+      if (distance > 0.001f) {
+        if (distance < separationRadius) {
+          diff.normalize();
+          diff /= distance;
+          separationSteer += diff;
+          separationCount++;
+        }
+        
+        if (distance < alignmentRadius) {
+          alignmentSteer += neighbor.bNav.uf();
+          alignmentCount++;
+        }
+        
+        if (distance < cohesionRadius) {
+          cohesionSteer += neighborPos;
+          cohesionCount++;
+        }
       }
     }
 
-    if (!this->i_boids.empty()) {
-      averageUp /= this->i_boids.size();
-      averageHeading /= this->i_boids.size();
-      centerOfMass /= this->i_boids.size();
-      separation /= this->i_boids.size();
+    Vec3f steer(0, 0, 0);
+    
+    if (separationCount > 0) {
+      separationSteer /= separationCount;
+      if (separationSteer.mag() > 0) {
+        separationSteer.normalize();
+        separationSteer -= myVel;
+        steer += separationSteer * separationForce;
+      }
+    }
+    
+    if (alignmentCount > 0) {
+      alignmentSteer /= alignmentCount;
+      if (alignmentSteer.mag() > 0) {
+        alignmentSteer.normalize();
+        alignmentSteer -= myVel;
+        steer += alignmentSteer * alignmentForce;
+      }
+    }
+    
+    if (cohesionCount > 0) {
+      cohesionSteer /= cohesionCount;
+      cohesionSteer -= myPos;
+      if (cohesionSteer.mag() > 0) {
+        cohesionSteer.normalize();
+        cohesionSteer -= myVel;
+        steer += cohesionSteer * cohesionForce;
+      }
+    }
 
-      Vec3f desiredDirection =
-          (averageHeading.normalized() * alignmentForce) +
-          ((centerOfMass - this->bNav.pos()).normalized() * cohesionForce) +
-          (separation.normalized() * separationForce);
-      this->bNav.faceToward(this->bNav.pos() + desiredDirection,
-                            averageUp.normalized(), turnRate * turnRateFactor);
+    if (steer.mag() > 0) {
+      steer.normalize();
+      Vec3f newDirection = myVel + steer * turnRate;
+      if (newDirection.mag() > 0) {
+        newDirection.normalize();
+        this->bNav.faceToward(myPos + newDirection, this->bNav.uu(), turnRate * turnRateFactor);
+      }
     }
   }
 
@@ -148,35 +195,5 @@ class Boid {
   {
     bNav.moveF(0.67);
     bNav.step(dt);
-  }
-
-  virtual void updateParams(float dts)
-  {
-    if (age > lifespan) {
-      lifeStatus = false;
-    }
-    age += ageRate * (dts / 5.0) +
-           (ageRate * fear);  // Fear increases rate of aging
-    if (hunger < 0.0) {
-      hunger = 0.0;
-    }
-
-    if (attentionSpan < 0.0) {
-      attentionSpan = 0.0;
-    }
-    else if (attentionSpan > 1.0) {
-      attentionSpan = 1.0;
-    }
-    // float deathProximity = age / lifespan;
-    // if (fear > 1.0) {
-    //     lifeStatus = rnd::uniform() > deathProximity;
-    // }
-    // hunger -= 0.01 - (0.1 * fear);      // Fear decreases hunger
-    // if (hunger < 0.0) {
-    //     fear += 0.01;
-    //     lifespan -= 0.001 + 0.001 * deathProximity;
-    // }
-    // mutation += mutationRate + (mutationRate * fear) + (mutationRate *
-    // deathProximity); // Fear and age increase mutation rate
   }
 };
