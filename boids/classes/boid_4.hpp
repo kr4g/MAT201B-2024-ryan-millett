@@ -37,7 +37,7 @@ class Boid {
     switch(type) {
       case BoidType::SMALL_PREY:
         turnRateFactor = 0.15f;
-        maxSpeed = baseSpeed = 2.4f;
+        maxSpeed = baseSpeed = 1.5f;
         hungerRate = 0.8f + (rnd::uniformS() * 0.4f);
         break;
       case BoidType::LARGE_PREY:
@@ -47,7 +47,7 @@ class Boid {
         break;
       case BoidType::PREDATOR:
         turnRateFactor = 0.1f;
-        maxSpeed = baseSpeed = 1.8f;
+        maxSpeed = baseSpeed = 1.2f;
         hungerRate = 1.0f + (rnd::uniformS() * 0.8f);
         break;
     }
@@ -223,7 +223,7 @@ class Boid {
         if (clusterCenter.mag() > 0.001f) {
           huntingMode = true;
           targetCluster = clusterCenter;
-          maxSpeed = baseSpeed * 2.5f;
+          maxSpeed = baseSpeed * 3.0f;
           seek(targetCluster, 0.3);
           
           if (al::dist(bNav.pos(), targetCluster) < 3.0f) {
