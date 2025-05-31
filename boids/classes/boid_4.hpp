@@ -8,9 +8,9 @@
 using namespace al;
 
 enum class BoidType {
-  SMALL_PREY = 0,  // Green, fast, twitchy
-  LARGE_PREY = 1,  // Blue, slower, stable
-  PREDATOR = 2     // Red, large, cluster-seeking
+  SMALL_PREY = 0,
+  LARGE_PREY = 1,
+  PREDATOR = 2   
 };
 
 class Boid {

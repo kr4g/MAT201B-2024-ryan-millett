@@ -87,7 +87,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   VAOMesh smallBoidPanicMesh;
   VAOMesh predatorMesh;
   VAOMesh predatorHuntMesh;
-  VAOMesh foodMesh;
+  VAOMesh foodMesh; // XXX - I think the issue is that this needs to be a regular Mesh since it needs to be modified each frame
 
   ShaderProgram pointShader;
 
