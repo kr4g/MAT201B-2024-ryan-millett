@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "al/math/al_Vec.hpp"
-#include "classes/boid_4.hpp"
+#include "boids/boid.hpp"
 
 using namespace al;
 

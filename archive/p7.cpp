@@ -9,7 +9,7 @@
 #include "al/math/al_Random.hpp"
 #include "al/math/al_Vec.hpp"
 #include "al_ext/statedistribution/al_CuttleboneStateSimulationDomain.hpp"
-#include "octree.hpp"
+#include "utils/octree.hpp"
 
 constexpr int CUBE_SIZE = 20;
 constexpr int MAX_BOIDS = 1500;
@@ -87,7 +87,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
   VAOMesh smallBoidPanicMesh;
   VAOMesh predatorMesh;
   VAOMesh predatorHuntMesh;
-  VAOMesh foodMesh; // XXX - I think the issue is that this needs to be a regular Mesh since it needs to be modified each frame
+  VAOMesh foodMesh;  // XXX - I think the issue is that this needs to be a
+                     // regular Mesh since it needs to be modified each frame
 
   ShaderProgram pointShader;
 
@@ -216,12 +217,14 @@ struct MyApp : DistributedAppWithState<CommonState> {
       float rand = rnd::uniform();
       if (rand < 0.002f) {
         type = BoidType::PREDATOR;
-      } else if (rand < 0.55f) {
+      }
+      else if (rand < 0.55f) {
         type = BoidType::LARGE_PREY;
-      } else {
+      }
+      else {
         type = BoidType::SMALL_PREY;
       }
-      
+
       Boid b(type);
       randomize(b.bNav);
       state().boid[i] = b.bNav.pos();
@@ -238,7 +241,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     for (const auto& b : boids) {
       if (b.type == BoidType::PREDATOR) predatorCount++;
     }
-    
+
     if (predatorCount < 3) {
       int needed = 3 - predatorCount;
       for (int i = 0; i < boids.size() && needed > 0; ++i) {
@@ -265,12 +268,14 @@ struct MyApp : DistributedAppWithState<CommonState> {
       float rand = rnd::uniform();
       if (rand < 0.0006f) {
         type = BoidType::PREDATOR;
-      } else if (rand < 0.55f) {
+      }
+      else if (rand < 0.55f) {
         type = BoidType::LARGE_PREY;
-      } else {
+      }
+      else {
         type = BoidType::SMALL_PREY;
       }
-      
+
       Boid b(type);
       randomize(b.bNav);
       state().boid[i] = b.bNav.pos();
@@ -314,15 +319,19 @@ struct MyApp : DistributedAppWithState<CommonState> {
         b.originAvoidance(2.0f);
 
         if (b.type == BoidType::PREDATOR) {
-          boidTree->queryRegion(b.bNav.pos(), Vec3f(predatorVision.get()), b.i_boids);
-        } else {
+          boidTree->queryRegion(b.bNav.pos(), Vec3f(predatorVision.get()),
+                                b.i_boids);
+        }
+        else {
           boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
         }
 
-        float visionRadius = (b.type == BoidType::PREDATOR) ? predatorVision.get() : bRadius.get();
-        b.boidForces(boids, food, alignmentForce.get(), cohesionForce.get(), 
+        float visionRadius = (b.type == BoidType::PREDATOR)
+                                 ? predatorVision.get()
+                                 : bRadius.get();
+        b.boidForces(boids, food, alignmentForce.get(), cohesionForce.get(),
                      separationForce.get(), CUBE_SIZE, visionRadius);
-        
+
         b.updatePosition(dt, 0.67);
         state().boid[i].set(b.bNav);
         i++;
@@ -393,8 +402,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.pushMatrix();
         g.translate(a.pos());
         g.rotate(a.quat());
-        
-        switch(b.type) {
+
+        switch (b.type) {
           case BoidType::SMALL_PREY:
             g.scale(0.08);
             g.draw(b.panicMode ? smallBoidPanicMesh : smallBoidMesh);
@@ -408,11 +417,12 @@ struct MyApp : DistributedAppWithState<CommonState> {
             g.draw(b.huntingMode ? predatorHuntMesh : predatorMesh);
             break;
         }
-        
+
         g.popMatrix();
       }
-      Mesh m{Mesh::LINES}; // these are the "target" lines between boids and their targets
-      
+      Mesh m{Mesh::LINES};  // these are the "target" lines between boids and
+                            // their targets
+
       if (b.type == BoidType::PREDATOR) {
         if (b.targetCluster.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
@@ -420,21 +430,24 @@ struct MyApp : DistributedAppWithState<CommonState> {
           m.vertex(b.targetCluster);
           m.color(0.5, 0.05, 0.05);
         }
-      } else {
+      }
+      else {
         if (b.foragingMode && b.targetFood.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
           m.vertex(b.targetFood);
-          
+
           if (b.type == BoidType::SMALL_PREY) {
             m.color(0.15, 0.4, 0.05);  // Darker green
             m.color(0.15, 0.4, 0.05);
-          } else if (b.type == BoidType::LARGE_PREY) {
-            m.color(0.0, 0.2, 0.5);    // Darker blue
+          }
+          else if (b.type == BoidType::LARGE_PREY) {
+            m.color(0.0, 0.2, 0.5);  // Darker blue
             m.color(0.0, 0.2, 0.5);
           }
         }
         // for (int j : b.i_boids) {
-        //   if (i < j && j < boids.size() && boids[j].type != BoidType::PREDATOR) {
+        //   if (i < j && j < boids.size() && boids[j].type !=
+        //   BoidType::PREDATOR) {
         //     m.vertex(b.bNav.pos());
         //     m.color(0.1, 0.1, 0.1);
         //     m.vertex(boids[j].bNav.pos());
@@ -442,7 +455,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         //   }
         // }
       }
-      
+
       if (m.vertices().size() > 0) {
         g.draw(m);
       }
@@ -455,7 +468,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     g.blendTrans();
     g.depthTesting(true);
     g.draw(foodMesh);
-    
+
     g.shader().end();
     g.blending(false);
   }

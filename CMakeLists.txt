@@ -12,10 +12,10 @@ if(MSVC)
 endif()
 
 add_executable(${APP_NAME}
-  boids/p7.cpp
+  src/main.cpp
 )
 
-target_include_directories(${APP_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/boids ${CMAKE_CURRENT_LIST_DIR}/utils)
+target_include_directories(${APP_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 
 add_subdirectory(allolib)
 target_link_libraries(${APP_NAME} PRIVATE alapp)
