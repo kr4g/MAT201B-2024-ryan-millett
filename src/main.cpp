@@ -12,9 +12,9 @@
 #include "utils/octree.hpp"
 
 constexpr int CUBE_SIZE = 20;
-constexpr int MAX_BOIDS = 1500;
+constexpr int MAX_BOIDS = 3000;
 constexpr int NEIGHBOR_LIMIT = 100;
-constexpr int N_FOOD_PARTICLES = 250;
+constexpr int N_FOOD_PARTICLES = 100;
 
 using namespace al;
 
@@ -35,7 +35,7 @@ struct CommonState {
 
 struct MyApp : DistributedAppWithState<CommonState> {
   Parameter timeStep{"timeStep", "", 1.0, "", 0.0333, 3.0};
-  Parameter pointSize{"pointSize", "", 0.5, 0.05, 6.0};
+  Parameter pointSize{"pointSize", "", 0.05, 0.05, 6.0};
   Parameter bRadius{"boidVisionRadius", "", 4.0, 1.0, 8.0};
   Parameter predatorVision{"predatorVisionRadius", "", 8.0, 4.0, 15.0};
   Parameter cohesionForce{"cohesionForce", "", 1.3, 0.0, 3.0};
