@@ -36,7 +36,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
   Parameter timeStep{"timeStep", "", 1.0, "", 0.0333, 3.0};
   Parameter pointSize{"pointSize", "", 0.1, 0.05, 6.0};
   Parameter bRadius{"boidVisionRadius", "", 5.0, 1.0, 8.0};
-  Parameter predatorVision{"predatorVisionRadius", "", 8.0, 4.0, 15.0};
+  Parameter predatorVision{"predatorVisionRadius", "", 12.0, 4.0, 15.0};
   Parameter cohesionForce{"cohesionForce", "", 1.3, 0.0, 3.0};
   Parameter separationForce{"separationForce", "", 1.7, 0.0, 3.0};
   Parameter alignmentForce{"alignmentForce", "", 1.3, 0.0, 3.0};
@@ -64,7 +64,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
   VAOMesh predatorHuntMesh;
   VAOMesh foodMesh;
                    
-
   ShaderProgram pointShader;
 
   const std::string slurp(const std::string& fileName)
@@ -86,6 +85,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
                         slurp("shaders/point-geometry.glsl"));
 
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
+    lens().near(0.02).far(CUBE_SIZE * 4);
     nav().pos(Vec3f(5.0, 0.0, 0.0));
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
@@ -229,9 +229,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
         }
       }
     }
-
-    if (isPrimary()) {
-    }
   }
 
   void randomize(Nav& boidNav)
@@ -309,18 +306,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
     }
   }
 
-  bool onKeyDown(Keyboard const& k) override
-  {
-    switch (k.key()) {
-      case ' ':
-        break;
-    }
-    return true;
-  }
-
   void onDraw(Graphics& g) override
   {
-    lens().near(0.001).far(1000);
     g.clear(0);
     g.meshColor();
     g.pointSize(10);
@@ -350,28 +337,27 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.popMatrix();
       }
 
-      Mesh m{Mesh::LINES};  // these are the "target" lines between boids and
-                            // their targets
+      Mesh m{Mesh::LINES};
 
       if (b.mode.type == BoidType::PREDATOR) {
-        if (b.targetCluster.mag() > 0.001f) {
+        if (b.mode.huntingMode && b.target.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
           m.color(0.8, 0.2, 0.2);
-          m.vertex(b.targetCluster);
+          m.vertex(b.target);
           m.color(0.5, 0.05, 0.05);
         }
       }
       else {
-        if (b.mode.foragingMode && b.targetFood.mag() > 0.001f) {
+        if (b.mode.foragingMode && b.target.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
-          m.vertex(b.targetFood);
+          m.vertex(b.target);
 
           if (b.mode.type == BoidType::SMALL_PREY) {
-            m.color(0.15, 0.4, 0.05);  // Darker green
+            m.color(0.15, 0.4, 0.05);
             m.color(0.15, 0.4, 0.05);
           }
           else if (b.mode.type == BoidType::LARGE_PREY) {
-            m.color(0.0, 0.2, 0.5);  // Darker blue
+            m.color(0.0, 0.2, 0.5);
             m.color(0.0, 0.2, 0.5);
           }
         }

@@ -34,9 +34,7 @@ class Boid {
 
   BoidMode mode{0};
 
-  Vec3f targetCluster{0, 0, 0};
-  Vec3f wanderTarget{0, 0, 0};
-  Vec3f targetFood{0, 0, 0};
+  Vec3f target{0, 0, 0};
 
   std::vector<int> i_boids;
 
@@ -164,24 +162,22 @@ class Boid {
                             const float consumeDistance)
   {
     if (mode.type == BoidType::PREDATOR) {
-      targetFood = Vec3f(0, 0, 0);
       return;
     }
 
     Vec3f myPos = Vec3f(bNav.pos());
-    targetFood = Vec3f(0, 0, 0);
 
     for (const auto& foodPos : food) {
       if (al::dist(myPos, foodPos) < consumeDistance) {
-        targetFood = foodPos;
-        break;
+        target = foodPos;
+        return;
       }
     }
   }
 
-  void setFoodTarget(const Vec3f& foodPos) { targetFood = foodPos; }
+  void setTarget(const Vec3f& newTarget) { target = newTarget; }
 
-  void clearFoodTarget() { targetFood = Vec3f(0, 0, 0); }
+  void clearTarget() { target = Vec3f(0, 0, 0); }
 
   void boidForces(const std::vector<Boid>& boids,
                   const std::vector<Vec3f>& food,
@@ -212,27 +208,27 @@ class Boid {
 
       if (foundFood) {
         mode.foragingMode = true;
-        targetFood = nearestFood;
+        target = nearestFood;
         maxSpeed = baseSpeed * 1.3f;
-        seek(targetFood, 0.4);
+        seek(target, 0.4);
 
         if (minFoodDist < visionRadius * 0.1f) {
           hunger -= 0.4f;
           hunger = std::max(hunger, 0.0f);
           if (hunger < 0.2f) {
             mode.foragingMode = false;
-            targetFood = Vec3f(0, 0, 0);
+            target = Vec3f(0, 0, 0);
           }
         }
       }
       else if (!mode.panicMode) {
         mode.foragingMode = false;
-        targetFood = Vec3f(0, 0, 0);
+        target = Vec3f(0, 0, 0);
       }
     }
     else if (mode.type != BoidType::PREDATOR) {
       mode.foragingMode = false;
-      targetFood = Vec3f(0, 0, 0);
+      target = Vec3f(0, 0, 0);
     }
 
     Vec3f myPos = Vec3f(bNav.pos());
@@ -289,7 +285,7 @@ class Boid {
           }
 
           if (neighbor.mode.huntingMode) {
-            float distToTarget = al::dist(neighbor.targetCluster, myPos);
+            float distToTarget = al::dist(neighbor.target, myPos);
             if (distToTarget < visionRadius * 1.6f) {
               hunted = true;
             }
@@ -340,16 +336,16 @@ class Boid {
 
         if (clusterCenter.mag() > 0.001f) {
           mode.huntingMode = true;
-          targetCluster = clusterCenter;
+          target = clusterCenter;
           maxSpeed = baseSpeed * 3.0f;
-          seek(targetCluster, 0.3);
+          seek(target, 0.3);
 
-          if (al::dist(bNav.pos(), targetCluster) < 3.0f) {
+          if (al::dist(bNav.pos(), target) < 3.0f) {
             hunger -= 0.3f;
             hunger = std::max(hunger, 0.0f);
             if (hunger < 0.2f) {
               mode.huntingMode = false;
-              targetCluster = Vec3f(0, 0, 0);
+              target = Vec3f(0, 0, 0);
             }
           }
         }
@@ -358,24 +354,24 @@ class Boid {
           maxSpeed = baseSpeed * 0.8f;
 
           float wanderDistance = cubeSize * 0.95f;
-          if (wanderTarget.mag() < 0.001f ||
-              al::dist(bNav.pos(), wanderTarget) < wanderDistance) {
-            wanderTarget = newWanderTarget(cubeSize);
+          if (target.mag() < 0.001f ||
+              al::dist(bNav.pos(), target) < wanderDistance) {
+            target = newWanderTarget(cubeSize);
           }
-          seek(wanderTarget, 0.05);
+          seek(target, 0.05);
         }
       }
       else {
         mode.huntingMode = false;
-        targetCluster = Vec3f(0, 0, 0);
+        target = Vec3f(0, 0, 0);
         maxSpeed = baseSpeed * 0.6f;
 
         float wanderDistance = cubeSize * 0.95f;
-        if (wanderTarget.mag() < 0.001f ||
-            al::dist(bNav.pos(), wanderTarget) < wanderDistance) {
-          wanderTarget = newWanderTarget(cubeSize);
+        if (target.mag() < 0.001f ||
+            al::dist(bNav.pos(), target) < wanderDistance) {
+          target = newWanderTarget(cubeSize);
         }
-        seek(wanderTarget, 0.03);
+        seek(target, 0.03);
       }
 
       if (predatorCount > 0) {
@@ -468,21 +464,5 @@ class Boid {
     bNav.step(dt);
   }
 
-  const Vec3f& target() const
-  {
-    if (mode.type == BoidType::PREDATOR) {
-      return targetCluster;
-    }
-    return targetFood;
-  }
-
-  void target(const Vec3f& tgt)
-  {
-    if (mode.type == BoidType::PREDATOR) {
-      targetCluster = tgt;
-    }
-    else {
-      targetFood = tgt;
-    }
-  }
+  const Vec3f& getTarget() const { return target; }
 };
