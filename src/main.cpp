@@ -11,8 +11,8 @@
 #include "al_ext/statedistribution/al_CuttleboneStateSimulationDomain.hpp"
 #include "utils/octree.hpp"
 
-constexpr int CUBE_SIZE = 20;
-constexpr int MAX_BOIDS = 3000;
+constexpr int CUBE_SIZE = 40;
+constexpr int MAX_BOIDS = 2000;
 constexpr int NEIGHBOR_LIMIT = 100;
 constexpr int N_FOOD_PARTICLES = 100;
 
@@ -34,8 +34,8 @@ struct CommonState {
 
 struct MyApp : DistributedAppWithState<CommonState> {
   Parameter timeStep{"timeStep", "", 1.0, "", 0.0333, 3.0};
-  Parameter pointSize{"pointSize", "", 0.05, 0.05, 6.0};
-  Parameter bRadius{"boidVisionRadius", "", 4.0, 1.0, 8.0};
+  Parameter pointSize{"pointSize", "", 0.1, 0.05, 6.0};
+  Parameter bRadius{"boidVisionRadius", "", 5.0, 1.0, 8.0};
   Parameter predatorVision{"predatorVisionRadius", "", 8.0, 4.0, 15.0};
   Parameter cohesionForce{"cohesionForce", "", 1.3, 0.0, 3.0};
   Parameter separationForce{"separationForce", "", 1.7, 0.0, 3.0};
@@ -62,8 +62,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
   VAOMesh smallBoidPanicMesh;
   VAOMesh predatorMesh;
   VAOMesh predatorHuntMesh;
-  VAOMesh foodMesh;  // XXX - I think the issue is that this needs to be a
-                     // regular Mesh since it needs to be modified each frame
+  VAOMesh foodMesh;
+                   
 
   ShaderProgram pointShader;
 
@@ -177,7 +177,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     foodMesh.primitive(Mesh::POINTS);
     foodMesh.vertex(0, 0, 0);
-    foodMesh.color(1.0, 0.2, 0.2);
+    foodMesh.color(0.6, 0.4, 0.2);
     foodMesh.texCoord(0.5, 0);
     foodMesh.update();
 
@@ -320,6 +320,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
   void onDraw(Graphics& g) override
   {
+    lens().near(0.001).far(1000);
     g.clear(0);
     g.meshColor();
     g.pointSize(10);
