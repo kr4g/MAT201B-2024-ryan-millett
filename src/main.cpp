@@ -94,15 +94,15 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     smallBoidMesh.primitive(Mesh::TRIANGLE_FAN);
     smallBoidMesh.vertex(0, 0, -5);
-    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.6, 1.0, 0.2);
+    smallBoidMesh.color(0.6, 1.0, 0.2);
     smallBoidMesh.vertex(0, 0.5, 0);
-    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.2, 0.7, 0.1);
+    smallBoidMesh.color(0.2, 0.7, 0.1);
     smallBoidMesh.vertex(-1, 0, 0);
-    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.3, 0.8, 0.2);
+    smallBoidMesh.color(0.3, 0.8, 0.2);
     smallBoidMesh.vertex(1, 0, 0);
-    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.3, 0.8, 0.2);
+    smallBoidMesh.color(0.3, 0.8, 0.2);
     smallBoidMesh.vertex(0, 0.5, 0);
-    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.2, 0.7, 0.1);
+    smallBoidMesh.color(0.2, 0.7, 0.1);
     smallBoidMesh.update();
 
     smallBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
@@ -120,15 +120,15 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     largeBoidMesh.primitive(Mesh::TRIANGLE_FAN);
     largeBoidMesh.vertex(0, 0, -3);
-    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0, 0.5, 1.0);
+    largeBoidMesh.color(0, 0.5, 1.0);
     largeBoidMesh.vertex(0, 1, 0);
-    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0.45, 0.17, 0.28);
+    largeBoidMesh.color(0.45, 0.17, 0.28);
     largeBoidMesh.vertex(-3, -1, 0);
-    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0, 0.15, 0.7);
+    largeBoidMesh.color(0, 0.15, 0.7);
     largeBoidMesh.vertex(3, -1, 0);
-    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0.08, 0.08, 0.60);
+    largeBoidMesh.color(0.08, 0.08, 0.60);
     largeBoidMesh.vertex(0, 1, 0);
-    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0.45, 0.17, 0.28);
+    largeBoidMesh.color(0.45, 0.17, 0.28);
     largeBoidMesh.update();
 
     largeBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
