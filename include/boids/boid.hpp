@@ -24,6 +24,8 @@ union BoidMode {
 class Boid {
  public:
   Nav bNav;
+  BoidMode mode{0};
+  Vec3f target{0};
 
   float hunger{0.0f};
   float hungerRate{1.0f};
@@ -31,10 +33,6 @@ class Boid {
   float maxSpeed{1.5f};
   float baseSpeed{1.5f};
   float huntingThreshold{0.7f};
-
-  BoidMode mode{0};
-
-  Vec3f target{0, 0, 0};
 
   std::vector<int> i_boids;
 
@@ -137,47 +135,42 @@ class Boid {
     }
   }
 
-  const float hungerLevel(float baseFoodAttraction) const
-  {
-    if (mode.type == BoidType::PREDATOR) return 0.0f;
-    if (hunger < 0.1f) return 0.0f;
-    return baseFoodAttraction * hunger;
-  }
+  // const bool nearFood(const std::vector<Vec3f>& food,
+  //                     const float criticalDistance = 5.0f) const
+  // {
+  //   if (mode.type == BoidType::PREDATOR) return false;
+  //   Vec3f myPos = Vec3f(bNav.pos());
 
-  const bool nearFood(const std::vector<Vec3f>& food,
-                      const float criticalDistance = 5.0f) const
-  {
-    if (mode.type == BoidType::PREDATOR) return false;
-    Vec3f myPos = Vec3f(bNav.pos());
+  //   for (const auto& foodPos : food) {
+  //     if (al::dist(myPos, foodPos) < criticalDistance) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // }
 
-    for (const auto& foodPos : food) {
-      if (al::dist(myPos, foodPos) < criticalDistance) {
-        return true;
-      }
-    }
-    return false;
-  }
+  // void checkFoodConsumption(const std::vector<Vec3f>& food,
+  //                           const float consumeDistance)
+  // {
+  //   if (mode.type == BoidType::PREDATOR) {
+  //     targetFood = Vec3f(0, 0, 0);
+  //     return;
+  //   }
 
-  void checkFoodConsumption(const std::vector<Vec3f>& food,
-                            const float consumeDistance)
-  {
-    if (mode.type == BoidType::PREDATOR) {
-      return;
-    }
+  //   Vec3f myPos = Vec3f(bNav.pos());
+  //   targetFood = Vec3f(0, 0, 0);
 
-    Vec3f myPos = Vec3f(bNav.pos());
+  //   for (const auto& foodPos : food) {
+  //     if (al::dist(myPos, foodPos) < consumeDistance) {
+  //       targetFood = foodPos;
+  //       break;
+  //     }
+  //   }
+  // }
 
-    for (const auto& foodPos : food) {
-      if (al::dist(myPos, foodPos) < consumeDistance) {
-        target = foodPos;
-        return;
-      }
-    }
-  }
+  // void setFoodTarget(const Vec3f& foodPos) { targetFood = foodPos; }
 
-  void setTarget(const Vec3f& newTarget) { target = newTarget; }
-
-  void clearTarget() { target = Vec3f(0, 0, 0); }
+  // void clearFoodTarget() { targetFood = Vec3f(0, 0, 0); }
 
   void boidForces(const std::vector<Boid>& boids,
                   const std::vector<Vec3f>& food,
@@ -196,7 +189,7 @@ class Boid {
       float minFoodDist = visionRadius * 0.5f;
       bool foundFood = false;
 
-      Vec3f myPos = Vec3f(bNav.pos());
+      Vec3f myPos(bNav.pos());
       for (const auto& foodPos : food) {
         float dist = al::dist(myPos, foodPos);
         if (dist < minFoodDist) {
@@ -217,22 +210,22 @@ class Boid {
           hunger = std::max(hunger, 0.0f);
           if (hunger < 0.2f) {
             mode.foragingMode = false;
-            target = Vec3f(0, 0, 0);
+            target.set(0);
           }
         }
       }
       else if (!mode.panicMode) {
         mode.foragingMode = false;
-        target = Vec3f(0, 0, 0);
+        target.set(0);
       }
     }
     else if (mode.type != BoidType::PREDATOR) {
       mode.foragingMode = false;
-      target = Vec3f(0, 0, 0);
+      target.set(0);
     }
 
-    Vec3f myPos = Vec3f(bNav.pos());
-    Vec3f myVel = bNav.uf();
+    Vec3f myPos(bNav.pos());
+    Vec3f myVel(bNav.uf());
 
     Vec3f predatorAvoidance(0, 0, 0);
     Vec3f preyCenter(0, 0, 0);
@@ -254,7 +247,7 @@ class Boid {
 
     for (int i : this->i_boids) {
       const Boid& neighbor = boids[i];
-      Vec3f neighborPos = Vec3f(neighbor.bNav.pos());
+      Vec3f neighborPos(neighbor.bNav.pos());
       Vec3f diff = myPos - neighborPos;
       float distance = diff.mag();
 
@@ -345,7 +338,7 @@ class Boid {
             hunger = std::max(hunger, 0.0f);
             if (hunger < 0.2f) {
               mode.huntingMode = false;
-              target = Vec3f(0, 0, 0);
+              target.set(0);
             }
           }
         }
@@ -363,7 +356,7 @@ class Boid {
       }
       else {
         mode.huntingMode = false;
-        target = Vec3f(0, 0, 0);
+        target.set(0);
         maxSpeed = baseSpeed * 0.6f;
 
         float wanderDistance = cubeSize * 0.95f;
