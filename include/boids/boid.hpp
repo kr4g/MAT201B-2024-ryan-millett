@@ -8,11 +8,7 @@
 
 using namespace al;
 
-enum class BoidType : unsigned int {
-  SMALL_PREY = 0,
-  LARGE_PREY = 1,
-  PREDATOR = 2
-};
+enum class BoidType : uint8_t { SMALL_PREY = 0, LARGE_PREY = 1, PREDATOR = 2 };
 
 union BoidMode {
   struct {
@@ -20,6 +16,7 @@ union BoidMode {
     bool panicMode    : 1;
     bool beingHunted  : 1;
     bool foragingMode : 1;
+    BoidType type     : 4;
   };
   uint8_t value{0};
 };
@@ -27,7 +24,6 @@ union BoidMode {
 class Boid {
  public:
   Nav bNav;
-  BoidType type{BoidType::SMALL_PREY};
 
   float hunger{0.0f};
   float hungerRate{1.0f};
@@ -44,9 +40,10 @@ class Boid {
 
   std::vector<int> i_boids;
 
-  Boid(const BoidType boidType = BoidType::SMALL_PREY) : type(boidType)
+  Boid(const BoidType boidType = BoidType::SMALL_PREY)
+      : mode{false, false, false, false, boidType}
   {
-    switch (type) {
+    switch (mode.type) {
       case BoidType::SMALL_PREY:
         turnRateFactor = 0.15f;
         maxSpeed = baseSpeed = 2.4f;
@@ -124,10 +121,10 @@ class Boid {
 
   void updateSpeed()
   {
-    if (type == BoidType::PREDATOR) return;
+    if (mode.type == BoidType::PREDATOR) return;
 
     float minSpeed, maxSpeed;
-    if (type == BoidType::LARGE_PREY) {
+    if (mode.type == BoidType::LARGE_PREY) {
       minSpeed = 1.5f;
       maxSpeed = 2.0f;
     }
@@ -144,7 +141,7 @@ class Boid {
 
   const float hungerLevel(float baseFoodAttraction) const
   {
-    if (type == BoidType::PREDATOR) return 0.0f;
+    if (mode.type == BoidType::PREDATOR) return 0.0f;
     if (hunger < 0.1f) return 0.0f;
     return baseFoodAttraction * hunger;
   }
@@ -152,7 +149,7 @@ class Boid {
   const bool nearFood(const std::vector<Vec3f>& food,
                       const float criticalDistance = 5.0f) const
   {
-    if (type == BoidType::PREDATOR) return false;
+    if (mode.type == BoidType::PREDATOR) return false;
     Vec3f myPos = Vec3f(bNav.pos());
 
     for (const auto& foodPos : food) {
@@ -166,7 +163,7 @@ class Boid {
   void checkFoodConsumption(const std::vector<Vec3f>& food,
                             const float consumeDistance)
   {
-    if (type == BoidType::PREDATOR) {
+    if (mode.type == BoidType::PREDATOR) {
       targetFood = Vec3f(0, 0, 0);
       return;
     }
@@ -198,7 +195,7 @@ class Boid {
     updateHunger(1.0f);
     updateSpeed();
 
-    if (type != BoidType::PREDATOR && hunger > 0.3f && !food.empty()) {
+    if (mode.type != BoidType::PREDATOR && hunger > 0.3f && !food.empty()) {
       Vec3f nearestFood(0, 0, 0);
       float minFoodDist = visionRadius * 0.5f;
       bool foundFood = false;
@@ -233,7 +230,7 @@ class Boid {
         targetFood = Vec3f(0, 0, 0);
       }
     }
-    else if (type != BoidType::PREDATOR) {
+    else if (mode.type != BoidType::PREDATOR) {
       mode.foragingMode = false;
       targetFood = Vec3f(0, 0, 0);
     }
@@ -265,8 +262,8 @@ class Boid {
       Vec3f diff = myPos - neighborPos;
       float distance = diff.mag();
 
-      if (neighbor.type == BoidType::PREDATOR) {
-        if (type != BoidType::PREDATOR) {
+      if (neighbor.mode.type == BoidType::PREDATOR) {
+        if (mode.type != BoidType::PREDATOR) {
           if (distance < predatorAvoidRadius && distance > 0.001f) {
             minPredatorDist = std::min(minPredatorDist, distance);
             diff.normalize();
@@ -309,7 +306,7 @@ class Boid {
         }
       }
       else {
-        if (type == BoidType::PREDATOR) {
+        if (mode.type == BoidType::PREDATOR) {
           preyCenter += neighborPos;
           preyCount++;
         }
@@ -334,7 +331,7 @@ class Boid {
       }
     }
 
-    if (type == BoidType::PREDATOR) {
+    if (mode.type == BoidType::PREDATOR) {
       if (hunger > huntingThreshold) {
         Vec3f clusterCenter(0, 0, 0);
         if (preyCount >= 6) {
@@ -473,16 +470,18 @@ class Boid {
 
   const Vec3f& target() const
   {
-    if (type == BoidType::PREDATOR) {
+    if (mode.type == BoidType::PREDATOR) {
       return targetCluster;
     }
     return targetFood;
   }
 
-  void target(const Vec3f& tgt) {
-    if (type == BoidType::PREDATOR) {
+  void target(const Vec3f& tgt)
+  {
+    if (mode.type == BoidType::PREDATOR) {
       targetCluster = tgt;
-    } else {
+    }
+    else {
       targetFood = tgt;
     }
   }

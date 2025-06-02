@@ -28,7 +28,6 @@ struct CommonState {
   float pointSize;
   Pose boid[MAX_BOIDS];
   BoidMode mode[MAX_BOIDS];
-  Vec3f target[MAX_BOIDS];
   Vec3f food[N_FOOD_PARTICLES];
   Pose pose;
 };
@@ -203,7 +202,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
       randomize(b.bNav);
       state().boid[i] = b.bNav.pos();
       state().mode[i] = b.mode;
-      state().target[i] = b.target();
       boids.push_back(b);
     }
 
@@ -217,13 +215,13 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     int predatorCount = 0;
     for (const auto& b : boids) {
-      if (b.type == BoidType::PREDATOR) predatorCount++;
+      if (b.mode.type == BoidType::PREDATOR) predatorCount++;
     }
 
     if (predatorCount < 3) {
       int needed = 3 - predatorCount;
       for (int i = 0; i < boids.size() && needed > 0; ++i) {
-        if (boids[i].type != BoidType::PREDATOR) {
+        if (boids[i].mode.type != BoidType::PREDATOR) {
           boids[i] = Boid(BoidType::PREDATOR);
           randomize(boids[i].bNav);
           state().boid[i] = boids[i].bNav.pos();
@@ -271,7 +269,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         b.handleBoundary(CUBE_SIZE);
         b.originAvoidance(2.0f);
 
-        if (b.type == BoidType::PREDATOR) {
+        if (b.mode.type == BoidType::PREDATOR) {
           boidTree->queryRegion(b.bNav.pos(), Vec3f(predatorVision.get()),
                                 b.i_boids);
         }
@@ -279,7 +277,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
           boidTree->queryRegion(b.bNav.pos(), Vec3f(bRadius.get()), b.i_boids);
         }
 
-        float visionRadius = (b.type == BoidType::PREDATOR)
+        float visionRadius = (b.mode.type == BoidType::PREDATOR)
                                  ? predatorVision.get()
                                  : bRadius.get();
         b.boidForces(boids, food, alignmentForce.get(), cohesionForce.get(),
@@ -288,7 +286,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
         b.updatePosition(dt, 0.67);
         state().boid[i].set(b.bNav);
         state().mode[i] = b.mode;
-        state().target[i] = b.target();
         i++;
       }
       // boidCenterOfMass /= boids.size();
@@ -303,8 +300,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
       for (auto& b : boids) {
         b.bNav.set(state().boid[i]);
         b.mode = state().mode[i];
-        // is this necessary?
-        b.target(state().target[i]);
         i++;
       }
     }
@@ -336,7 +331,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         g.translate(a.pos());
         g.rotate(a.quat());
 
-        switch (b.type) {
+        switch (b.mode.type) {
           case BoidType::SMALL_PREY:
             g.scale(0.08);
             g.draw(b.mode.panicMode ? smallBoidPanicMesh : smallBoidMesh);
@@ -357,7 +352,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       Mesh m{Mesh::LINES};  // these are the "target" lines between boids and
                             // their targets
 
-      if (b.type == BoidType::PREDATOR) {
+      if (b.mode.type == BoidType::PREDATOR) {
         if (b.targetCluster.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
           m.color(0.8, 0.2, 0.2);
@@ -370,11 +365,11 @@ struct MyApp : DistributedAppWithState<CommonState> {
           m.vertex(b.bNav.pos());
           m.vertex(b.targetFood);
 
-          if (b.type == BoidType::SMALL_PREY) {
+          if (b.mode.type == BoidType::SMALL_PREY) {
             m.color(0.15, 0.4, 0.05);  // Darker green
             m.color(0.15, 0.4, 0.05);
           }
-          else if (b.type == BoidType::LARGE_PREY) {
+          else if (b.mode.type == BoidType::LARGE_PREY) {
             m.color(0.0, 0.2, 0.5);  // Darker blue
             m.color(0.0, 0.2, 0.5);
           }
