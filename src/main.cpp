@@ -357,7 +357,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
       if (b.target.mag() > 0.001f) {
         Mesh m{Mesh::LINES};  // "target" lines between boids and their targets
-        if (b.mode.type == BoidType::PREDATOR) {
+        if (b.mode.huntingMode && b.mode.type == BoidType::PREDATOR) {
           m.vertex(b.bNav.pos());
           m.vertex(b.target);
           m.color(0.8, 0.2, 0.2);
