@@ -134,7 +134,7 @@ class Octree {
 
     if (node->isLeaf()) {
       for (int particleIndex : node->particleIndices) {
-        found.push_back(particleIndex);
+        found.emplace_back(particleIndex);
       }
     }
     else {

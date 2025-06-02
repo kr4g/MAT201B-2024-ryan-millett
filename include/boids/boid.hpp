@@ -14,22 +14,30 @@ enum class BoidType : unsigned int {
   PREDATOR = 2
 };
 
+union BoidMode {
+  struct {
+    bool huntingMode  : 1;
+    bool panicMode    : 1;
+    bool beingHunted  : 1;
+    bool foragingMode : 1;
+  };
+  uint8_t value{0};
+};
+
 class Boid {
  public:
   Nav bNav;
-  Vec3d target;
   BoidType type{BoidType::SMALL_PREY};
+
   float hunger{0.0f};
   float hungerRate{1.0f};
-
   float turnRateFactor{0.15f};
   float maxSpeed{1.5f};
   float baseSpeed{1.5f};
-  bool huntingMode{false};
-  bool panicMode{false};
-  bool beingHunted{false};
-  bool foragingMode{false};
   float huntingThreshold{0.7f};
+
+  BoidMode mode{0};
+
   Vec3f targetCluster{0, 0, 0};
   Vec3f wanderTarget{0, 0, 0};
   Vec3f targetFood{0, 0, 0};
@@ -129,7 +137,7 @@ class Boid {
     }
 
     baseSpeed = minSpeed + (maxSpeed - minSpeed) * hunger;
-    if (!panicMode && !huntingMode) {
+    if (!mode.panicMode && !mode.huntingMode) {
       this->maxSpeed = baseSpeed;
     }
   }
@@ -206,7 +214,7 @@ class Boid {
       }
 
       if (foundFood) {
-        foragingMode = true;
+        mode.foragingMode = true;
         targetFood = nearestFood;
         maxSpeed = baseSpeed * 1.3f;
         seek(targetFood, 0.4);
@@ -215,18 +223,18 @@ class Boid {
           hunger -= 0.4f;
           hunger = std::max(hunger, 0.0f);
           if (hunger < 0.2f) {
-            foragingMode = false;
+            mode.foragingMode = false;
             targetFood = Vec3f(0, 0, 0);
           }
         }
       }
-      else if (!panicMode) {
-        foragingMode = false;
+      else if (!mode.panicMode) {
+        mode.foragingMode = false;
         targetFood = Vec3f(0, 0, 0);
       }
     }
     else if (type != BoidType::PREDATOR) {
-      foragingMode = false;
+      mode.foragingMode = false;
       targetFood = Vec3f(0, 0, 0);
     }
 
@@ -264,7 +272,7 @@ class Boid {
             diff.normalize();
             float urgency = 1.0f - (distance / predatorAvoidRadius);
 
-            if (beingHunted) {
+            if (mode.beingHunted) {
               urgency *= 1.8f;
             }
 
@@ -273,7 +281,7 @@ class Boid {
             predatorCount++;
           }
 
-          if (!neighbor.huntingMode && distance < visionRadius * 1.5f &&
+          if (!neighbor.mode.huntingMode && distance < visionRadius * 1.5f &&
               distance > 0.001f) {
             Vec3f gentleDiff = diff;
             gentleDiff.normalize();
@@ -283,7 +291,7 @@ class Boid {
             nearbyPredators++;
           }
 
-          if (neighbor.huntingMode) {
+          if (neighbor.mode.huntingMode) {
             float distToTarget = al::dist(neighbor.targetCluster, myPos);
             if (distToTarget < visionRadius * 1.6f) {
               hunted = true;
@@ -334,7 +342,7 @@ class Boid {
         }
 
         if (clusterCenter.mag() > 0.001f) {
-          huntingMode = true;
+          mode.huntingMode = true;
           targetCluster = clusterCenter;
           maxSpeed = baseSpeed * 3.0f;
           seek(targetCluster, 0.3);
@@ -343,13 +351,13 @@ class Boid {
             hunger -= 0.3f;
             hunger = std::max(hunger, 0.0f);
             if (hunger < 0.2f) {
-              huntingMode = false;
+              mode.huntingMode = false;
               targetCluster = Vec3f(0, 0, 0);
             }
           }
         }
         else {
-          huntingMode = false;
+          mode.huntingMode = false;
           maxSpeed = baseSpeed * 0.8f;
 
           float wanderDistance = cubeSize * 0.95f;
@@ -361,7 +369,7 @@ class Boid {
         }
       }
       else {
-        huntingMode = false;
+        mode.huntingMode = false;
         targetCluster = Vec3f(0, 0, 0);
         maxSpeed = baseSpeed * 0.6f;
 
@@ -382,10 +390,10 @@ class Boid {
       return;
     }
 
-    beingHunted = hunted;
+    mode.beingHunted = hunted;
 
     if (predatorCount > 0) {
-      panicMode = true;
+      mode.panicMode = true;
       hunger = 0.0f;
       predatorAvoidance /= predatorCount;
       predatorAvoidance.normalize();
@@ -393,7 +401,7 @@ class Boid {
       float panicLevel = 1.0f - (minPredatorDist / predatorAvoidRadius);
       panicLevel = panicLevel * panicLevel;
 
-      if (beingHunted) {
+      if (mode.beingHunted) {
         panicLevel *= 1.5f;
         maxSpeed = baseSpeed * (2.0f + panicLevel * 1.0f);
       }
@@ -401,15 +409,15 @@ class Boid {
         maxSpeed = baseSpeed * (1.6f + panicLevel * 0.8f);
       }
 
-      float escapeDistance = visionRadius * (beingHunted ? 1.6f : 1.2f);
-      float panicTurnRate = turnRateFactor * (beingHunted ? 1.8f : 1.2f) *
+      float escapeDistance = visionRadius * (mode.beingHunted ? 1.6f : 1.2f);
+      float panicTurnRate = turnRateFactor * (mode.beingHunted ? 1.8f : 1.2f) *
                             (1.0f + panicLevel * 0.8f);
       bNav.faceToward(myPos + predatorAvoidance * escapeDistance, bNav.uu(),
                       panicTurnRate);
       return;
     }
     else {
-      panicMode = false;
+      mode.panicMode = false;
       maxSpeed = baseSpeed;
     }
 
@@ -442,7 +450,7 @@ class Boid {
       Vec3f newDirection = myVel + steering * turnRateFactor;
       newDirection.normalize();
       float effectiveTurnRate = turnRateFactor;
-      if (foragingMode) {
+      if (mode.foragingMode) {
         effectiveTurnRate *= 2.5f;
       }
       this->bNav.faceToward(myPos + newDirection, this->bNav.uu(),
@@ -452,9 +460,8 @@ class Boid {
 
   void seek(const Vec3d& a, const double amt, const float smooth = 0.1)
   {
-    target.set(a);
     bNav.smooth(smooth);
-    bNav.faceToward(target, bNav.uu(), amt);
+    bNav.faceToward(a, bNav.uu(), amt);
   }
 
   void updatePosition(const double dt, double amt)
@@ -462,5 +469,21 @@ class Boid {
     amt = std::min(amt * maxSpeed, 3.0);
     bNav.moveF(amt);
     bNav.step(dt);
+  }
+
+  const Vec3f& target() const
+  {
+    if (type == BoidType::PREDATOR) {
+      return targetCluster;
+    }
+    return targetFood;
+  }
+
+  void target(const Vec3f& tgt) {
+    if (type == BoidType::PREDATOR) {
+      targetCluster = tgt;
+    } else {
+      targetFood = tgt;
+    }
   }
 };

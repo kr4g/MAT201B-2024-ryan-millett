@@ -27,23 +27,21 @@ const Vec3f randomVec3f(const float scale = 1.0)
 struct CommonState {
   float pointSize;
   Pose boid[MAX_BOIDS];
-  bool panicModes[MAX_BOIDS];
-  bool huntingModes[MAX_BOIDS];
-  int i_boids[MAX_BOIDS][NEIGHBOR_LIMIT];
+  BoidMode mode[MAX_BOIDS];
+  Vec3f target[MAX_BOIDS];
   Vec3f food[N_FOOD_PARTICLES];
   Pose pose;
-  Vec3f boidCenterMass;
 };
 
 struct MyApp : DistributedAppWithState<CommonState> {
-  Parameter timeStep{"Time Step", "", 1.0, "", 0.0333, 3.0};
-  Parameter pointSize{"/pointSize", "", 0.5, 0.05, 6.0};
-  Parameter bRadius{"/Boid Vision Radius", "", 4.0, 1.0, 8.0};
-  Parameter predatorVision{"/Predator Vision Radius", "", 8.0, 4.0, 15.0};
-  Parameter cohesionForce{"/Cohesion Force", "", 1.3, 0.0, 3.0};
-  Parameter separationForce{"Separation Force", "", 1.7, 0.0, 3.0};
-  Parameter alignmentForce{"Alignment Force", "", 1.3, 0.0, 3.0};
-  Parameter turnRate{"Turn Rate", "", 0.54, 0.01, 0.5};
+  Parameter timeStep{"timeStep", "", 1.0, "", 0.0333, 3.0};
+  Parameter pointSize{"pointSize", "", 0.5, 0.05, 6.0};
+  Parameter bRadius{"boidVisionRadius", "", 4.0, 1.0, 8.0};
+  Parameter predatorVision{"predatorVisionRadius", "", 8.0, 4.0, 15.0};
+  Parameter cohesionForce{"cohesionForce", "", 1.3, 0.0, 3.0};
+  Parameter separationForce{"separationForce", "", 1.7, 0.0, 3.0};
+  Parameter alignmentForce{"alignmentForce", "", 1.3, 0.0, 3.0};
+  Parameter turnRate{"turnRate", "", 0.54, 0.01, 0.5};
 
   std::vector<Boid> boids;
   std::vector<Vec3f> food;
@@ -204,10 +202,12 @@ struct MyApp : DistributedAppWithState<CommonState> {
       Boid b(type);
       randomize(b.bNav);
       state().boid[i] = b.bNav.pos();
-      state().panicModes[i] = b.panicMode;
-      state().huntingModes[i] = b.huntingMode;
+      state().mode[i] = b.mode;
+      state().target[i] = b.target();
       boids.push_back(b);
     }
+
+    state().pointSize = 0.3f;
 
     for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
       Vec3f foodPos = randomVec3f(CUBE_SIZE * 0.9);
@@ -233,31 +233,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
     }
 
     if (isPrimary()) {
-    }
-  }
-
-  void setUp()
-  {
-    boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
-    foodTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
-    boids.clear();
-    for (int i = 0; i < MAX_BOIDS; ++i) {
-      BoidType type;
-      float rand = rnd::uniform();
-      if (rand < 0.0006f) {
-        type = BoidType::PREDATOR;
-      }
-      else if (rand < 0.55f) {
-        type = BoidType::LARGE_PREY;
-      }
-      else {
-        type = BoidType::SMALL_PREY;
-      }
-
-      Boid b(type);
-      randomize(b.bNav);
-      state().boid[i] = b.bNav.pos();
-      boids.push_back(b);
     }
   }
 
@@ -312,23 +287,14 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
         b.updatePosition(dt, 0.67);
         state().boid[i].set(b.bNav);
-        state().panicModes[i] = b.panicMode;
-        state().huntingModes[i] = b.huntingMode;
+        state().mode[i] = b.mode;
+        state().target[i] = b.target();
         i++;
       }
       // boidCenterOfMass /= boids.size();
       nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0), 0.2);
       state().pose = nav();
-
-      for (int i = 0; i < boids.size(); i++) {
-        for (int j = 0; j < NEIGHBOR_LIMIT; j++) {
-          state().i_boids[i][j] = -1;
-        }
-        for (int j = 0; j < boids[i].i_boids.size() && j < NEIGHBOR_LIMIT;
-             j++) {
-          state().i_boids[i][j] = boids[i].i_boids[j];
-        }
-      }
+      state().pointSize = pointSize.get();
     }
     else {
       nav().set(state().pose);
@@ -336,18 +302,10 @@ struct MyApp : DistributedAppWithState<CommonState> {
       int i = 0;
       for (auto& b : boids) {
         b.bNav.set(state().boid[i]);
-        b.panicMode = state().panicModes[i];
-        b.huntingMode = state().huntingModes[i];
+        b.mode = state().mode[i];
+        // is this necessary?
+        b.target(state().target[i]);
         i++;
-      }
-
-      for (int i = 0; i < boids.size(); i++) {
-        boids[i].i_boids.clear();
-        for (int j = 0; j < NEIGHBOR_LIMIT; j++) {
-          int n = state().i_boids[i][j];
-          if (n == -1) break;
-          boids[i].i_boids.push_back(n);
-        }
       }
     }
 
@@ -381,15 +339,15 @@ struct MyApp : DistributedAppWithState<CommonState> {
         switch (b.type) {
           case BoidType::SMALL_PREY:
             g.scale(0.08);
-            g.draw(b.panicMode ? smallBoidPanicMesh : smallBoidMesh);
+            g.draw(b.mode.panicMode ? smallBoidPanicMesh : smallBoidMesh);
             break;
           case BoidType::LARGE_PREY:
             g.scale(0.13);
-            g.draw(b.panicMode ? largeBoidPanicMesh : largeBoidMesh);
+            g.draw(b.mode.panicMode ? largeBoidPanicMesh : largeBoidMesh);
             break;
           case BoidType::PREDATOR:
             g.scale(0.21);
-            g.draw(b.huntingMode ? predatorHuntMesh : predatorMesh);
+            g.draw(b.mode.huntingMode ? predatorHuntMesh : predatorMesh);
             break;
         }
 
@@ -408,7 +366,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
         }
       }
       else {
-        if (b.foragingMode && b.targetFood.mag() > 0.001f) {
+        if (b.mode.foragingMode && b.targetFood.mag() > 0.001f) {
           m.vertex(b.bNav.pos());
           m.vertex(b.targetFood);
 
@@ -421,15 +379,6 @@ struct MyApp : DistributedAppWithState<CommonState> {
             m.color(0.0, 0.2, 0.5);
           }
         }
-        // for (int j : b.i_boids) {
-        //   if (i < j && j < boids.size() && boids[j].type !=
-        //   BoidType::PREDATOR) {
-        //     m.vertex(b.bNav.pos());
-        //     m.color(0.1, 0.1, 0.1);
-        //     m.vertex(boids[j].bNav.pos());
-        //     m.color(0.1, 0.1, 0.1);
-        //   }
-        // }
       }
 
       if (m.vertices().size() > 0) {
@@ -438,7 +387,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     }
 
     g.shader(pointShader);
-    g.shader().uniform("pointSize", 1.2f);  // 3.f
+    g.shader().uniform("pointSize", state().pointSize);
     g.blending(true);
     g.blendTrans();
     g.depthTesting(true);
