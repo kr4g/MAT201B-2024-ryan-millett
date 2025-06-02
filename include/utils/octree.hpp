@@ -49,14 +49,14 @@ class Octree {
   float minimumSize;
 
  public:
-  Octree(const Vec3f& center, const Vec3f& halfSize, float minSize)
+  Octree(const Vec3f& center, const Vec3f& halfSize, const float minSize)
       : root(new OctreeNode(center, halfSize)), minimumSize(minSize)
   {
   }
 
   ~Octree() { clear(root); }
 
-  void insertPosition(int particleIndex, const Vec3f& position)
+  void insertPosition(const int particleIndex, const Vec3f& position)
   {
     insert(root, particleIndex, position);
   }
@@ -84,22 +84,22 @@ class Octree {
     queryRegion(root, center, halfSize, found);
   }
 
-  std::vector<Vec3f> getOctants() const
+  const std::vector<Vec3f> getOctants() const
   {
     std::vector<Vec3f> octants;
     for (int i = 0; i < 8; ++i) {
-      octants.push_back(root->children[i]->center);
+      octants.emplace_back(root->children[i]->center);
     }
     return octants;
   }
 
  private:
-  void insert(OctreeNode* node, int particleIndex, const Vec3f& position)
+  void insert(OctreeNode* node, const int particleIndex, const Vec3f& position)
   {
     if (!node->contains(position)) return;
 
     if (node->halfSize.x <= minimumSize) {
-      node->particleIndices.push_back(particleIndex);
+      node->particleIndices.emplace_back(particleIndex);
       return;
     }
 
@@ -146,8 +146,8 @@ class Octree {
     }
   }
 
-  bool intersects(const Vec3f& center1, const Vec3f& halfSize1,
-                  const Vec3f& center2, const Vec3f& halfSize2) const
+  const bool intersects(const Vec3f& center1, const Vec3f& halfSize1,
+                        const Vec3f& center2, const Vec3f& halfSize2) const
   {
     return (abs(center1.x - center2.x) <= (halfSize1.x + halfSize2.x)) &&
            (abs(center1.y - center2.y) <= (halfSize1.y + halfSize2.y)) &&

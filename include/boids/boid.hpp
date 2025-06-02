@@ -8,7 +8,11 @@
 
 using namespace al;
 
-enum class BoidType { SMALL_PREY = 0, LARGE_PREY = 1, PREDATOR = 2 };
+enum class BoidType : unsigned int {
+  SMALL_PREY = 0,
+  LARGE_PREY = 1,
+  PREDATOR = 2
+};
 
 class Boid {
  public:
@@ -32,7 +36,7 @@ class Boid {
 
   std::vector<int> i_boids;
 
-  Boid(BoidType boidType = BoidType::SMALL_PREY) : type(boidType)
+  Boid(const BoidType boidType = BoidType::SMALL_PREY) : type(boidType)
   {
     switch (type) {
       case BoidType::SMALL_PREY:
@@ -53,7 +57,7 @@ class Boid {
     }
   }
 
-  void handleBoundary(float size)
+  void handleBoundary(const float size)
   {
     Vec3d pos = bNav.pos();
     float dist = pos.mag();
@@ -75,7 +79,7 @@ class Boid {
     }
   }
 
-  void originAvoidance(float avoidanceRadius)
+  void originAvoidance(const float avoidanceRadius)
   {
     Vec3d pos = bNav.pos();
     float dist = pos.mag();
@@ -97,14 +101,14 @@ class Boid {
     }
   }
 
-  Vec3f newWanderTarget(float cubeSize)
+  const Vec3f newWanderTarget(const float cubeSize) const
   {
     float range = cubeSize * 0.7f;
     return Vec3f((rnd::uniformS() * range), (rnd::uniformS() * range),
                  (rnd::uniformS() * range));
   }
 
-  void updateHunger(float globalHungerRate)
+  void updateHunger(const float globalHungerRate)
   {
     hunger += 0.001f * globalHungerRate * hungerRate;
     hunger = std::min(hunger, 1.0f);
@@ -130,14 +134,15 @@ class Boid {
     }
   }
 
-  float hungerLevel(float baseFoodAttraction)
+  const float hungerLevel(float baseFoodAttraction) const
   {
     if (type == BoidType::PREDATOR) return 0.0f;
     if (hunger < 0.1f) return 0.0f;
     return baseFoodAttraction * hunger;
   }
 
-  bool nearFood(const std::vector<Vec3f>& food, float criticalDistance = 5.0f)
+  const bool nearFood(const std::vector<Vec3f>& food,
+                      const float criticalDistance = 5.0f) const
   {
     if (type == BoidType::PREDATOR) return false;
     Vec3f myPos = Vec3f(bNav.pos());
@@ -151,7 +156,7 @@ class Boid {
   }
 
   void checkFoodConsumption(const std::vector<Vec3f>& food,
-                            float consumeDistance)
+                            const float consumeDistance)
   {
     if (type == BoidType::PREDATOR) {
       targetFood = Vec3f(0, 0, 0);
@@ -174,9 +179,11 @@ class Boid {
   void clearFoodTarget() { targetFood = Vec3f(0, 0, 0); }
 
   void boidForces(const std::vector<Boid>& boids,
-                  const std::vector<Vec3f>& food, float alignmentForce = 0.5,
-                  float cohesionForce = 0.5, float separationForce = 0.5,
-                  float cubeSize = 20.0f, float visionRadius = 5.0f)
+                  const std::vector<Vec3f>& food,
+                  const float alignmentForce = 0.5,
+                  const float cohesionForce = 0.5,
+                  const float separationForce = 0.5,
+                  const float cubeSize = 20.0f, const float visionRadius = 5.0f)
   {
     if (this->i_boids.empty()) return;
 
@@ -443,14 +450,14 @@ class Boid {
     }
   }
 
-  void seek(const Vec3d& a, double amt, float smooth = 0.1)
+  void seek(const Vec3d& a, const double amt, const float smooth = 0.1)
   {
     target.set(a);
     bNav.smooth(smooth);
     bNav.faceToward(target, bNav.uu(), amt);
   }
 
-  void updatePosition(double dt, double amt)
+  void updatePosition(const double dt, double amt)
   {
     amt = std::min(amt * maxSpeed, 3.0);
     bNav.moveF(amt);

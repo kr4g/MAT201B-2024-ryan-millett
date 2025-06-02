@@ -14,43 +14,21 @@
 constexpr int CUBE_SIZE = 20;
 constexpr int MAX_BOIDS = 1500;
 constexpr int NEIGHBOR_LIMIT = 100;
-
 constexpr int N_FOOD_PARTICLES = 250;
 
 using namespace al;
 
-double r() { return rnd::uniformS(); }
-Vec3f randomVec3f(float scale = 1.0) { return Vec3f(r(), r(), r()) * scale; }
-
-// struct Axes {
-//   void draw(Graphics& g)
-//   {
-//     Mesh mesh(Mesh::LINES);
-//     // x axis
-//     mesh.vertex(-CUBE_SIZE, 0, 0);
-//     mesh.color(1, 0, 0);
-//     mesh.vertex(CUBE_SIZE, 0, 0);
-//     mesh.color(1, 0, 0);
-
-//     // y axis
-//     mesh.vertex(0, -CUBE_SIZE, 0);
-//     mesh.color(0, 1, 0);
-//     mesh.vertex(0, CUBE_SIZE, 0);
-//     mesh.color(0, 1, 0);
-
-//     // z axis
-//     mesh.vertex(0, 0, -CUBE_SIZE);
-//     mesh.color(0, 0, 1);
-//     mesh.vertex(0, 0, CUBE_SIZE);
-//     mesh.color(0, 0, 1);
-
-//     g.draw(mesh);
-//   }
-// };
+const double r() { return rnd::uniformS(); }
+const Vec3f randomVec3f(const float scale = 1.0)
+{
+  return Vec3f(r(), r(), r()) * scale;
+}
 
 struct CommonState {
   float pointSize;
   Pose boid[MAX_BOIDS];
+  bool panicModes[MAX_BOIDS];
+  bool huntingModes[MAX_BOIDS];
   int i_boids[MAX_BOIDS][NEIGHBOR_LIMIT];
   Vec3f food[N_FOOD_PARTICLES];
   Pose pose;
@@ -92,7 +70,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
   ShaderProgram pointShader;
 
-  std::string slurp(std::string fileName)
+  const std::string slurp(const std::string& fileName)
   {
     std::fstream file(fileName);
     std::string returnValue = "";
@@ -106,52 +84,26 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
   void onCreate() override
   {
-    pointShader.compile(slurp("../point-vertex.glsl"),
-                        slurp("../point-fragment.glsl"),
-                        slurp("../point-geometry.glsl"));
+    pointShader.compile(slurp("shaders/point-vertex.glsl"),
+                        slurp("shaders/point-fragment.glsl"),
+                        slurp("shaders/point-geometry.glsl"));
 
     initDist = al::dist(nav().pos(), Vec3d(0, 0, 0));
     nav().pos(Vec3f(5.0, 0.0, 0.0));
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
-    largeBoidMesh.primitive(Mesh::TRIANGLE_FAN);
-    largeBoidMesh.vertex(0, 0, -3);
-    largeBoidMesh.color(0, 0.5, 1.0);
-    largeBoidMesh.vertex(0, 1, 0);
-    largeBoidMesh.color(0.45, 0.17, 0.28);
-    largeBoidMesh.vertex(-3, -1, 0);
-    largeBoidMesh.color(0, 0.15, 0.7);
-    largeBoidMesh.vertex(3, -1, 0);
-    largeBoidMesh.color(0.08, 0.08, 0.60);
-    largeBoidMesh.vertex(0, 1, 0);
-    largeBoidMesh.color(0.45, 0.17, 0.28);
-    largeBoidMesh.update();
-
     smallBoidMesh.primitive(Mesh::TRIANGLE_FAN);
     smallBoidMesh.vertex(0, 0, -5);
-    smallBoidMesh.color(0.6, 1.0, 0.2);
+    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.6, 1.0, 0.2);
     smallBoidMesh.vertex(0, 0.5, 0);
-    smallBoidMesh.color(0.2, 0.7, 0.1);
+    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.2, 0.7, 0.1);
     smallBoidMesh.vertex(-1, 0, 0);
-    smallBoidMesh.color(0.3, 0.8, 0.2);
+    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.3, 0.8, 0.2);
     smallBoidMesh.vertex(1, 0, 0);
-    smallBoidMesh.color(0.3, 0.8, 0.2);
+    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.3, 0.8, 0.2);
     smallBoidMesh.vertex(0, 0.5, 0);
-    smallBoidMesh.color(0.2, 0.7, 0.1);
+    smallBoidMesh.color(0.1, 0.1, 0.1);  // color(0.2, 0.7, 0.1);
     smallBoidMesh.update();
-
-    largeBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
-    largeBoidPanicMesh.vertex(0, 0, -3);
-    largeBoidPanicMesh.color(0.2, 0.7, 1.0);
-    largeBoidPanicMesh.vertex(0, 1, 0);
-    largeBoidPanicMesh.color(0.6, 0.3, 0.4);
-    largeBoidPanicMesh.vertex(-3, -1, 0);
-    largeBoidPanicMesh.color(0.1, 0.3, 0.9);
-    largeBoidPanicMesh.vertex(3, -1, 0);
-    largeBoidPanicMesh.color(0.2, 0.2, 0.8);
-    largeBoidPanicMesh.vertex(0, 1, 0);
-    largeBoidPanicMesh.color(0.6, 0.3, 0.4);
-    largeBoidPanicMesh.update();
 
     smallBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
     smallBoidPanicMesh.vertex(0, 0, -5);
@@ -165,6 +117,32 @@ struct MyApp : DistributedAppWithState<CommonState> {
     smallBoidPanicMesh.vertex(0, 0.5, 0);
     smallBoidPanicMesh.color(0.4, 0.9, 0.2);
     smallBoidPanicMesh.update();
+
+    largeBoidMesh.primitive(Mesh::TRIANGLE_FAN);
+    largeBoidMesh.vertex(0, 0, -3);
+    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0, 0.5, 1.0);
+    largeBoidMesh.vertex(0, 1, 0);
+    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0.45, 0.17, 0.28);
+    largeBoidMesh.vertex(-3, -1, 0);
+    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0, 0.15, 0.7);
+    largeBoidMesh.vertex(3, -1, 0);
+    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0.08, 0.08, 0.60);
+    largeBoidMesh.vertex(0, 1, 0);
+    largeBoidMesh.color(0.1, 0.1, 0.1);  // color(0.45, 0.17, 0.28);
+    largeBoidMesh.update();
+
+    largeBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
+    largeBoidPanicMesh.vertex(0, 0, -3);
+    largeBoidPanicMesh.color(0.2, 0.7, 1.0);
+    largeBoidPanicMesh.vertex(0, 1, 0);
+    largeBoidPanicMesh.color(0.6, 0.3, 0.4);
+    largeBoidPanicMesh.vertex(-3, -1, 0);
+    largeBoidPanicMesh.color(0.1, 0.3, 0.9);
+    largeBoidPanicMesh.vertex(3, -1, 0);
+    largeBoidPanicMesh.color(0.2, 0.2, 0.8);
+    largeBoidPanicMesh.vertex(0, 1, 0);
+    largeBoidPanicMesh.color(0.6, 0.3, 0.4);
+    largeBoidPanicMesh.update();
 
     predatorMesh.primitive(Mesh::TRIANGLE_FAN);
     predatorMesh.vertex(0, 0, -4);
@@ -201,11 +179,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
     predatorHuntMesh.update();
 
     foodMesh.primitive(Mesh::POINTS);
-    for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
-      foodMesh.vertex(0, 0, 0);
-      foodMesh.color(1.0, 0.2, 0.2);
-      foodMesh.texCoord(0.5, 0);
-    }
+    foodMesh.vertex(0, 0, 0);
+    foodMesh.color(1.0, 0.2, 0.2);
+    foodMesh.texCoord(0.5, 0);
     foodMesh.update();
 
     boidTree = new Octree(Vec3f(0, 0, 0), Vec3f(CUBE_SIZE), 0.01f);
@@ -228,6 +204,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
       Boid b(type);
       randomize(b.bNav);
       state().boid[i] = b.bNav.pos();
+      state().panicModes[i] = b.panicMode;
+      state().huntingModes[i] = b.huntingMode;
       boids.push_back(b);
     }
 
@@ -334,6 +312,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
         b.updatePosition(dt, 0.67);
         state().boid[i].set(b.bNav);
+        state().panicModes[i] = b.panicMode;
+        state().huntingModes[i] = b.huntingMode;
         i++;
       }
       // boidCenterOfMass /= boids.size();
@@ -356,6 +336,8 @@ struct MyApp : DistributedAppWithState<CommonState> {
       int i = 0;
       for (auto& b : boids) {
         b.bNav.set(state().boid[i]);
+        b.panicMode = state().panicModes[i];
+        b.huntingMode = state().huntingModes[i];
         i++;
       }
 
@@ -369,15 +351,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
       }
     }
 
-    // foodMesh.reset();
-    foodMesh.primitive(Mesh::POINTS);
     for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
       food[i] = state().food[i];
-      foodMesh.vertex(state().food[i]);
-      foodMesh.color(1.0, 0.2, 0.2);
-      foodMesh.texCoord(0.5, 0);
     }
-    foodMesh.update();
   }
 
   bool onKeyDown(Keyboard const& k) override
@@ -395,10 +371,9 @@ struct MyApp : DistributedAppWithState<CommonState> {
     g.meshColor();
     g.pointSize(10);
 
-    int i = 0;
     for (auto& b : boids) {
       {
-        Nav& a(b.bNav);
+        const Nav& a(b.bNav);
         g.pushMatrix();
         g.translate(a.pos());
         g.rotate(a.quat());
@@ -420,6 +395,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
         g.popMatrix();
       }
+
       Mesh m{Mesh::LINES};  // these are the "target" lines between boids and
                             // their targets
 
@@ -459,16 +435,19 @@ struct MyApp : DistributedAppWithState<CommonState> {
       if (m.vertices().size() > 0) {
         g.draw(m);
       }
-      ++i;
     }
 
     g.shader(pointShader);
-    g.shader().uniform("pointSize", 3.0f);
+    g.shader().uniform("pointSize", 1.2f);  // 3.f
     g.blending(true);
     g.blendTrans();
     g.depthTesting(true);
-    g.draw(foodMesh);
-
+    for (unsigned int i = 0; i < N_FOOD_PARTICLES; ++i) {
+      g.pushMatrix();
+      g.translate(food[i]);
+      g.draw(foodMesh);
+      g.popMatrix();
+    }
     g.shader().end();
     g.blending(false);
   }
