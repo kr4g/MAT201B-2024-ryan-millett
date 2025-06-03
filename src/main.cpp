@@ -15,7 +15,7 @@
 #undef near
 #undef far
 
-constexpr int CUBE_SIZE = 40;
+constexpr int CUBE_SIZE = 30;
 constexpr int MAX_BOIDS = 2000;
 constexpr int NEIGHBOR_LIMIT = 100;
 constexpr int N_FOOD_PARTICLES = 100;
@@ -117,88 +117,88 @@ struct MyApp : DistributedAppWithState<CommonState> {
 
     smallBoidMesh.primitive(Mesh::TRIANGLE_FAN);
     smallBoidMesh.vertex(0, 0, -5);
-    smallBoidMesh.color(0.6, 1.0, 0.2);
+    smallBoidMesh.color(0.7, 1.0, 0.4);
     smallBoidMesh.vertex(0, 0.5, 0);
-    smallBoidMesh.color(0.2, 0.7, 0.1);
+    smallBoidMesh.color(0.4, 0.8, 0.3);
     smallBoidMesh.vertex(-1, 0, 0);
-    smallBoidMesh.color(0.3, 0.8, 0.2);
+    smallBoidMesh.color(0.5, 0.9, 0.4);
     smallBoidMesh.vertex(1, 0, 0);
-    smallBoidMesh.color(0.3, 0.8, 0.2);
+    smallBoidMesh.color(0.5, 0.9, 0.4);
     smallBoidMesh.vertex(0, 0.5, 0);
-    smallBoidMesh.color(0.2, 0.7, 0.1);
+    smallBoidMesh.color(0.4, 0.8, 0.3);
     smallBoidMesh.update();
 
     smallBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
     smallBoidPanicMesh.vertex(0, 0, -5);
-    smallBoidPanicMesh.color(0.8, 1.0, 0.4);
+    smallBoidPanicMesh.color(0.9, 1.0, 0.6);
     smallBoidPanicMesh.vertex(0, 0.5, 0);
-    smallBoidPanicMesh.color(0.4, 0.9, 0.2);
+    smallBoidPanicMesh.color(0.6, 1.0, 0.4);
     smallBoidPanicMesh.vertex(-1, 0, 0);
-    smallBoidPanicMesh.color(0.5, 1.0, 0.3);
+    smallBoidPanicMesh.color(0.7, 1.0, 0.5);
     smallBoidPanicMesh.vertex(1, 0, 0);
-    smallBoidPanicMesh.color(0.5, 1.0, 0.3);
+    smallBoidPanicMesh.color(0.7, 1.0, 0.5);
     smallBoidPanicMesh.vertex(0, 0.5, 0);
-    smallBoidPanicMesh.color(0.4, 0.9, 0.2);
+    smallBoidPanicMesh.color(0.6, 1.0, 0.4);
     smallBoidPanicMesh.update();
 
     largeBoidMesh.primitive(Mesh::TRIANGLE_FAN);
     largeBoidMesh.vertex(0, 0, -3);
-    largeBoidMesh.color(0, 0.5, 1.0);
+    largeBoidMesh.color(0.2, 0.6, 1.0);
     largeBoidMesh.vertex(0, 1, 0);
-    largeBoidMesh.color(0.45, 0.17, 0.28);
+    largeBoidMesh.color(0.6, 0.3, 0.4);
     largeBoidMesh.vertex(-3, -1, 0);
-    largeBoidMesh.color(0, 0.15, 0.7);
+    largeBoidMesh.color(0.15, 0.3, 0.8);
     largeBoidMesh.vertex(3, -1, 0);
-    largeBoidMesh.color(0.08, 0.08, 0.60);
+    largeBoidMesh.color(0.2, 0.2, 0.7);
     largeBoidMesh.vertex(0, 1, 0);
-    largeBoidMesh.color(0.45, 0.17, 0.28);
+    largeBoidMesh.color(0.6, 0.3, 0.4);
     largeBoidMesh.update();
 
     largeBoidPanicMesh.primitive(Mesh::TRIANGLE_FAN);
     largeBoidPanicMesh.vertex(0, 0, -3);
-    largeBoidPanicMesh.color(0.2, 0.7, 1.0);
+    largeBoidPanicMesh.color(0.4, 0.8, 1.0);
     largeBoidPanicMesh.vertex(0, 1, 0);
-    largeBoidPanicMesh.color(0.6, 0.3, 0.4);
+    largeBoidPanicMesh.color(0.7, 0.5, 0.6);
     largeBoidPanicMesh.vertex(-3, -1, 0);
-    largeBoidPanicMesh.color(0.1, 0.3, 0.9);
+    largeBoidPanicMesh.color(0.3, 0.5, 1.0);
     largeBoidPanicMesh.vertex(3, -1, 0);
-    largeBoidPanicMesh.color(0.2, 0.2, 0.8);
+    largeBoidPanicMesh.color(0.4, 0.4, 0.9);
     largeBoidPanicMesh.vertex(0, 1, 0);
-    largeBoidPanicMesh.color(0.6, 0.3, 0.4);
+    largeBoidPanicMesh.color(0.7, 0.5, 0.6);
     largeBoidPanicMesh.update();
 
     predatorMesh.primitive(Mesh::TRIANGLE_FAN);
     predatorMesh.vertex(0, 0, -4);
-    predatorMesh.color(0.6, 0.1, 0.1);
+    predatorMesh.color(0.9, 0.3, 0.3);
     predatorMesh.vertex(-2, 1.5, 0);
-    predatorMesh.color(0.5, 0.05, 0.05);
+    predatorMesh.color(0.8, 0.25, 0.25);
     predatorMesh.vertex(-4, -0.5, 0);
-    predatorMesh.color(0.4, 0.03, 0.03);
+    predatorMesh.color(0.7, 0.2, 0.2);
     predatorMesh.vertex(0, -2, 0);
-    predatorMesh.color(0.7, 0.15, 0.08);
+    predatorMesh.color(1.0, 0.4, 0.3);
     predatorMesh.vertex(4, -0.5, 0);
-    predatorMesh.color(0.4, 0.03, 0.03);
+    predatorMesh.color(0.7, 0.2, 0.2);
     predatorMesh.vertex(2, 1.5, 0);
-    predatorMesh.color(0.5, 0.05, 0.05);
+    predatorMesh.color(0.8, 0.25, 0.25);
     predatorMesh.vertex(0, 0, -4);
-    predatorMesh.color(0.6, 0.1, 0.1);
+    predatorMesh.color(0.9, 0.3, 0.3);
     predatorMesh.update();
 
     predatorHuntMesh.primitive(Mesh::TRIANGLE_FAN);
     predatorHuntMesh.vertex(0, 0, -4);
-    predatorHuntMesh.color(1.0, 0.1, 0.1);
+    predatorHuntMesh.color(1.0, 0.4, 0.4);
     predatorHuntMesh.vertex(-2, 1.5, 0);
-    predatorHuntMesh.color(0.8, 0.0, 0.0);
+    predatorHuntMesh.color(1.0, 0.3, 0.3);
     predatorHuntMesh.vertex(-4, -0.5, 0);
-    predatorHuntMesh.color(0.6, 0.0, 0.0);
+    predatorHuntMesh.color(0.9, 0.2, 0.2);
     predatorHuntMesh.vertex(0, -2, 0);
-    predatorHuntMesh.color(0.9, 0.2, 0.1);
+    predatorHuntMesh.color(1.0, 0.5, 0.4);
     predatorHuntMesh.vertex(4, -0.5, 0);
-    predatorHuntMesh.color(0.6, 0.0, 0.0);
+    predatorHuntMesh.color(0.9, 0.2, 0.2);
     predatorHuntMesh.vertex(2, 1.5, 0);
-    predatorHuntMesh.color(0.8, 0.0, 0.0);
+    predatorHuntMesh.color(1.0, 0.3, 0.3);
     predatorHuntMesh.vertex(0, 0, -4);
-    predatorHuntMesh.color(1.0, 0.1, 0.1);
+    predatorHuntMesh.color(1.0, 0.4, 0.4);
     predatorHuntMesh.update();
 
     foodMesh.primitive(Mesh::POINTS);
@@ -233,7 +233,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
     }
 
     for (int i = 0; i < N_FOOD_PARTICLES; ++i) {
-      Vec3f foodPos = randomVec3f(CUBE_SIZE * 0.9);
+      Vec3f foodPos = randomVec3f(CUBE_SIZE * 0.6);
       food.emplace_back(foodPos);
       state().food[i] = foodPos;
     }
@@ -283,7 +283,7 @@ struct MyApp : DistributedAppWithState<CommonState> {
       int i = 0;
       for (auto& b : boids) {
         b.handleBoundary(CUBE_SIZE);
-        b.originAvoidance(2.0f);
+        b.originAvoidance(1.0f);
 
         if (b.mode.type == BoidType::PREDATOR) {
           boidTree->queryRegion(b.bNav.pos(), Vec3f(predatorVision.get()),
